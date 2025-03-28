@@ -8,7 +8,16 @@ export const createMovementController = (
   setSkyColor, 
   cats
 ) => {
-  const { MOVE_SPEED, ROTATE_SPEED } = GAME_CONFIG;
+  const { 
+    MOVE_SPEED, 
+    ROTATE_SPEED, 
+    ROTATION_ANGLE, 
+    ROTATION_THRESHOLD,
+    POSITION_THRESHOLD,
+    GRID_PRECISION,
+    MOVE_STRIDE
+  } = GAME_CONFIG;
+
   const keyState = {
     ArrowUp: false,
     ArrowDown: false,
@@ -26,7 +35,7 @@ export const createMovementController = (
 
   const normalizeRotation = (rotation) => {
     // Ensure rotation is always a multiple of 45 degrees (PI/4)
-    return Math.round(rotation / (Math.PI / 4)) * (Math.PI / 4);
+    return Math.round(rotation / ROTATION_ANGLE) * ROTATION_ANGLE;
   };
 
   const handleKeyDown = (event) => {
@@ -90,12 +99,12 @@ export const createMovementController = (
 
     // Forward movement
     if (keyState.ArrowUp) {
-      const newX = player.x - Math.sin(player.rotation);
-      const newZ = player.y - Math.cos(player.rotation);
+      const newX = player.x - Math.sin(player.rotation) * MOVE_STRIDE;
+      const newZ = player.y - Math.cos(player.rotation) * MOVE_STRIDE;
       
       if (checkCollision(newX, newZ)) {
-        player.targetX = Math.round(newX * 2) / 2;
-        player.targetY = Math.round(newZ * 2) / 2;
+        player.targetX = Math.round(newX * GRID_PRECISION) / GRID_PRECISION;
+        player.targetY = Math.round(newZ * GRID_PRECISION) / GRID_PRECISION;
 
         const catIndex = cats.findIndex(cat => 
           Math.round(cat.x) === Math.round(player.targetX) && 
@@ -119,23 +128,23 @@ export const createMovementController = (
 
     // Backward movement
     if (keyState.ArrowDown) {
-      const newX = player.x + Math.sin(player.rotation);
-      const newZ = player.y + Math.cos(player.rotation);
+      const newX = player.x + Math.sin(player.rotation) * MOVE_STRIDE;
+      const newZ = player.y + Math.cos(player.rotation) * MOVE_STRIDE;
       
       if (checkCollision(newX, newZ)) {
-        player.targetX = Math.round(newX * 2) / 2;
-        player.targetY = Math.round(newZ * 2) / 2;
+        player.targetX = Math.round(newX * GRID_PRECISION) / GRID_PRECISION;
+        player.targetY = Math.round(newZ * GRID_PRECISION) / GRID_PRECISION;
       }
     }
 
     // Rotate left (counterclockwise)
     if (keyState.ArrowLeft) {
-      player.targetRotation = normalizeRotation(player.rotation + Math.PI / 4);
+      player.targetRotation = normalizeRotation(player.rotation + ROTATION_ANGLE);
     }
 
     // Rotate right (clockwise)
     if (keyState.ArrowRight) {
-      player.targetRotation = normalizeRotation(player.rotation - Math.PI / 4);
+      player.targetRotation = normalizeRotation(player.rotation - ROTATION_ANGLE);
     }
 
     // Smooth position interpolation (grid-aligned)
@@ -143,11 +152,10 @@ export const createMovementController = (
     player.y += (player.targetY - player.y) * MOVE_SPEED;
 
     // Precise position alignment
-    const threshold = 0.01;
-    if (Math.abs(player.x - player.targetX) < threshold) {
+    if (Math.abs(player.x - player.targetX) < POSITION_THRESHOLD) {
       player.x = player.targetX;
     }
-    if (Math.abs(player.y - player.targetY) < threshold) {
+    if (Math.abs(player.y - player.targetY) < POSITION_THRESHOLD) {
       player.y = player.targetY;
     }
 
@@ -155,7 +163,7 @@ export const createMovementController = (
     player.rotation += (player.targetRotation - player.rotation) * ROTATE_SPEED;
 
     // Precise rotation alignment
-    if (Math.abs(player.rotation - player.targetRotation) < 0.01) {
+    if (Math.abs(player.rotation - player.targetRotation) < ROTATION_THRESHOLD) {
       player.rotation = player.targetRotation;
     }
   };
