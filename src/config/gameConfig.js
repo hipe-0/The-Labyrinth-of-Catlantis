@@ -14,15 +14,15 @@ export const GAME_CONFIG = {
   // Movement Parameters
   MOVE_SPEED: 0.1,
   ROTATE_SPEED: 0.1,
-  MOVE_STRIDE: 0.1, // Distance per grid movement
+  MOVE_STRIDE: 0.5,  // Distance per grid movement
   
   // Rotation Constants
   ROTATION_ANGLE: Math.PI / 2, // 90 degrees
   ROTATION_THRESHOLD: 0.01, // Precision for rotation alignment
   
   // Jump Mechanics
-  JUMP_VELOCITY: 0.3,
-  GRAVITY: 0.5,
+  JUMP_VELOCITY: 4,    // Increased from 0.3 for stronger initial jump
+  GRAVITY: 9.8,        // Increased from 0.5 for more realistic gravity
   
   // Collision and Movement
   POSITION_THRESHOLD: 0.01, // Precision for position alignment
