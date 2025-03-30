@@ -9,6 +9,9 @@ export function StarField() {
 
   useFrame((state, delta) => {
     if (starsRef.current) {
+      // Rotate around X axis by 45 degrees (Math.PI/4)
+      starsRef.current.rotation.x = Math.PI / 4;
+      // Then rotate around Y axis
       starsRef.current.rotation.y += delta * 0.05;
     }
   });

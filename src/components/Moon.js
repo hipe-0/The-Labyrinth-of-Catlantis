@@ -1,30 +1,47 @@
 // src/components/Moon.js
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 
 export function Moon() {
   const moonRef = useRef();
+  const orbitRef = useRef();
+  const moonOrbitSpeed = 0.05; // Match star field rotation speed
+  const moonSpinSpeed = 0.02; // Self-rotation speed
 
   useFrame((state, delta) => {
+    if (orbitRef.current) {
+      // Set 45-degree tilt
+      orbitRef.current.rotation.x = Math.PI / 4;
+      // Orbit around the scene
+      orbitRef.current.rotation.y += moonOrbitSpeed * delta;
+    }
     if (moonRef.current) {
-      // More pronounced circular motion
-      const time = state.clock.elapsedTime * 0.2;
-      moonRef.current.position.x = 30 * Math.cos(time);
-      moonRef.current.position.y = 20 + 10 * Math.sin(time);
-      moonRef.current.position.z = 30 * Math.sin(time);
-      
-      moonRef.current.rotation.y += delta * 0.1;
+      // Self-rotation
+      moonRef.current.rotation.y += moonSpinSpeed * delta;
     }
   });
 
   return (
-    <mesh ref={moonRef} position={[30, 30, 0]}>
-      <sphereGeometry args={[3, 32, 32]} />
-      <meshStandardMaterial 
-        color="#F0F0F0" 
-        emissive="#F0F0F0" 
-        emissiveIntensity={1} 
-      />
-    </mesh>
+    <group ref={orbitRef} position={[0, 0, 0]}>
+      <group ref={moonRef} position={[30, 30, 30]}>
+        <mesh>
+          <sphereGeometry args={[5, 32, 32]} />
+          <meshStandardMaterial 
+            color="#FFFFFF"
+            emissive="#FFFFFF"
+            emissiveIntensity={0.5}
+          />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[4.8, 32, 32]} />
+          <meshStandardMaterial 
+            color="#CCCCCC"
+            emissive="#CCCCCC"
+            emissiveIntensity={0.3}
+          />
+        </mesh>
+      </group>
+    </group>
   );
 }
