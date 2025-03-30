@@ -1,44 +1,52 @@
 // src/components/Moon.js
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { GAME_CONFIG } from '../config/gameConfig';
 
 export function Moon() {
   const moonRef = useRef();
   const orbitRef = useRef();
-  const moonOrbitSpeed = 0.05; // Match star field rotation speed
-  const moonSpinSpeed = 0.02; // Self-rotation speed
+  const { 
+    ORBIT_SPEED, 
+    SPIN_SPEED, 
+    POSITION, 
+    SIZE, 
+    INNER_SIZE, 
+    SEGMENTS,
+    OUTER_COLOR,
+    INNER_COLOR,
+    OUTER_EMISSIVE,
+    INNER_EMISSIVE
+  } = GAME_CONFIG.MOON;
+  const { TILT_ANGLE } = GAME_CONFIG.SKY;
 
   useFrame((state, delta) => {
     if (orbitRef.current) {
-      // Set 45-degree tilt
-      orbitRef.current.rotation.x = Math.PI / 4;
-      // Orbit around the scene
-      orbitRef.current.rotation.y += moonOrbitSpeed * delta;
+      orbitRef.current.rotation.x = TILT_ANGLE;
+      orbitRef.current.rotation.y += ORBIT_SPEED * delta;
     }
     if (moonRef.current) {
-      // Self-rotation
-      moonRef.current.rotation.y += moonSpinSpeed * delta;
+      moonRef.current.rotation.y += SPIN_SPEED * delta;
     }
   });
 
   return (
     <group ref={orbitRef} position={[0, 0, 0]}>
-      <group ref={moonRef} position={[30, 30, 30]}>
+      <group ref={moonRef} position={POSITION}>
         <mesh>
-          <sphereGeometry args={[5, 32, 32]} />
+          <sphereGeometry args={[SIZE, SEGMENTS, SEGMENTS]} />
           <meshStandardMaterial 
-            color="#FFFFFF"
-            emissive="#FFFFFF"
-            emissiveIntensity={0.5}
+            color={OUTER_COLOR}
+            emissive={OUTER_COLOR}
+            emissiveIntensity={OUTER_EMISSIVE}
           />
         </mesh>
         <mesh>
-          <sphereGeometry args={[4.8, 32, 32]} />
+          <sphereGeometry args={[INNER_SIZE, SEGMENTS, SEGMENTS]} />
           <meshStandardMaterial 
-            color="#CCCCCC"
-            emissive="#CCCCCC"
-            emissiveIntensity={0.3}
+            color={INNER_COLOR}
+            emissive={INNER_COLOR}
+            emissiveIntensity={INNER_EMISSIVE}
           />
         </mesh>
       </group>
