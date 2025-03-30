@@ -11,16 +11,16 @@ import { Moon } from './components/Moon';
 import { Floor } from './components/Floor';
 import { ExitBeacon } from './components/ExitBeacon';
 
-export function MazeScene() {
+export function MazeScene({ isGameStarted }) {
   const { camera } = useThree();
   
   const playerRef = useRef({
-    x: 1, 
-    y: 1, 
-    rotation: 0,
+    x: 1,  // Start at center of first walkable tile
+    y: 1,  // Start at center of first walkable tile
+    rotation: -Math.PI / 2,  // Initial rotation (facing right)
     targetX: 1,
     targetY: 1,
-    targetRotation: 0,
+    targetRotation: -Math.PI / 2,
     jumpVelocity: 0,
     jumpHeight: 0,
     isJumping: false,
@@ -53,17 +53,22 @@ export function MazeScene() {
   }, [exitX, exitY]);
 
   useEffect(() => {
-    camera.position.set(1, 0.5, 1);
-    camera.lookAt(2, 0.5, 1);
+    if (isGameStarted) {
+      // Set initial camera position and orientation
+      camera.position.set(1, 0.5, 1);  // Match player starting position
+      camera.rotation.set(0, -Math.PI / 2, 0);
+      camera.updateProjectionMatrix();
+    }
 
-    window.addEventListener('keydown', movementController.handleKeyDown);
-    window.addEventListener('keyup', movementController.handleKeyUp);
+    // Add event listeners at document level
+    document.addEventListener('keydown', movementController.handleKeyDown);
+    document.addEventListener('keyup', movementController.handleKeyUp);
 
     return () => {
-      window.removeEventListener('keydown', movementController.handleKeyDown);
-      window.removeEventListener('keyup', movementController.handleKeyUp);
+      document.removeEventListener('keydown', movementController.handleKeyDown);
+      document.removeEventListener('keyup', movementController.handleKeyUp);
     };
-  }, [camera, movementController]);
+  }, [camera, movementController, isGameStarted]);
 
   useFrame((state, delta) => {
     const player = playerRef.current;
@@ -86,10 +91,11 @@ export function MazeScene() {
 
     movementController.updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyColor);
     
-    camera.position.x = player.x + 0.0 * Math.sin(player.rotation);
-    camera.position.z = player.y + 0.0 * Math.cos(player.rotation);
+    // Update camera
+    camera.position.x = player.x;
+    camera.position.z = player.y;
     camera.position.y = 0.5 + player.jumpHeight;
-    camera.rotation.y = player.rotation;
+    camera.rotation.set(0, player.rotation, 0);  // Only rotate around Y axis
   });
 
   return (

@@ -1,34 +1,40 @@
 // src/App.js
-import React from 'react';
+import React, { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { MazeScene } from './MazeScene';
+import { StartScreen } from './components/StartScreen';
 
 function App() {
+  const [isGameStarted, setIsGameStarted] = useState(false);
+
+  const handleStart = () => {
+    setIsGameStarted(true);
+    window.focus(); // Focus window when game starts
+  };
+
   return (
-    <div style={{ width: '100vw', height: '100vh', margin: 0, overflow: 'hidden' }}>
+    <div 
+      style={{ width: '100vw', height: '100vh', margin: 0, overflow: 'hidden' }}
+      onClick={() => isGameStarted && window.focus()}
+      tabIndex={-1}
+    >
       <Canvas 
-        style={{background:'black'}}
+        style={{
+          background: 'black'
+        }}
         camera={{ 
           fov: 75, 
           near: 0.1, 
           far: 1000,
-          position: [1, 0.5, 1]
+          position: [1, 0.5, 1]  // Match player starting position
         }}
         gl={{ antialias: true }}
       >
-        <MazeScene />
+        <MazeScene isGameStarted={isGameStarted} />
       </Canvas>
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        color: 'white',
-        zIndex: 10
-      }}>
-        Use Arrow Keys to Navigate | Space to Jump
-      </div>
+      {!isGameStarted && <StartScreen onStart={handleStart} />}
     </div>
   );
 }
- 
+
 export default App;
