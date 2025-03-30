@@ -17,7 +17,7 @@ export const GAME_CONFIG = {
   MOVE_STRIDE: 0.5,  // Distance per grid movement
   
   // Rotation Constants
-  ROTATION_ANGLE: Math.PI / 2, // 90 degrees
+  ROTATION_ANGLE: Math.PI / 4, // 45 degrees
   ROTATION_THRESHOLD: 0.01, // Precision for rotation alignment
   
   // Jump Mechanics
@@ -27,7 +27,7 @@ export const GAME_CONFIG = {
   // Collision and Movement
   POSITION_THRESHOLD: 0.01, // Precision for position alignment
   GRID_PRECISION: 2, // Number of decimal places for grid alignment
-  GRID_REPEL: 0.1,  // Controls how far from grid lines the player is kept
+  GRID_REPEL: 0.2,  // Controls how far from grid lines the player is kept
   
   // Sky and lighting
   SKY: {
