@@ -13,7 +13,8 @@ export const createMovementController = (
     ROTATE_SPEED, 
     ROTATION_ANGLE, 
     ROTATION_THRESHOLD,
-    MOVE_STRIDE
+    MOVE_STRIDE,
+    GRID_REPEL
   } = GAME_CONFIG;
 
   const keyState = {
@@ -36,21 +37,19 @@ export const createMovementController = (
     return Math.round(rotation / ROTATION_ANGLE) * ROTATION_ANGLE;
   };
 
-  // Function to adjust position to avoid grid lines, but without blocking movement
   const avoidGridLines = (value) => {
-    // Calculate the fractional part (distance from the floored integer)
     const fractionalPart = value - Math.floor(value);
+    const centerLine = 0.5;
     
-    // Check if we're near a grid line (either close to 0 or close to 1)
-    if (fractionalPart < 0.2) {
-      // Near the lower grid line, push it up to 0.2
-      return Math.floor(value) + 0.2;
-    } else if (fractionalPart > 0.8) {
-      // Near the upper grid line, push it down to 0.8
-      return Math.floor(value) + 0.8;
+    // If too close to center line (0.5), push away from it
+    if (Math.abs(fractionalPart - centerLine) < GRID_REPEL) {
+      // Push to the nearest safe zone
+      return Math.floor(value) + (fractionalPart < centerLine ? 
+        centerLine - GRID_REPEL : 
+        centerLine + GRID_REPEL
+      );
     }
     
-    // Not near a grid line, so keep the original value
     return value;
   };
 
@@ -123,8 +122,8 @@ export const createMovementController = (
       const newZ = player.y - Math.cos(player.rotation) * MOVE_STRIDE;
       
       if (checkCollision(newX, newZ)) {
-        newTargetX = newX;
-        newTargetY = newZ;
+        newTargetX = avoidGridLines(newX);
+        newTargetY = avoidGridLines(newZ);
         movementOccurred = true;
         
         const catIndex = cats.findIndex(cat => 
@@ -153,19 +152,17 @@ export const createMovementController = (
       const newZ = player.y + Math.cos(player.rotation) * MOVE_STRIDE;
       
       if (checkCollision(newX, newZ)) {
-        newTargetX = newX;
-        newTargetY = newZ;
+        newTargetX = avoidGridLines(newX);
+        newTargetY = avoidGridLines(newZ);
         movementOccurred = true;
       }
     }
 
-    // Only apply grid avoidance when there was movement and setting new targets
     if (movementOccurred) {
-      // Apply grid avoidance to new target positions
-      player.targetX = avoidGridLines(newTargetX);
-      player.targetY = avoidGridLines(newTargetY);
+      player.targetX = newTargetX;
+      player.targetY = newTargetY;
     }
-
+    
     // Rotate left (counterclockwise)
     if (keyState.ArrowLeft) {
       player.targetRotation = normalizeRotation(player.rotation + ROTATION_ANGLE);
@@ -176,7 +173,7 @@ export const createMovementController = (
       player.targetRotation = normalizeRotation(player.rotation - ROTATION_ANGLE);
     }
 
-    // Smooth position interpolation
+    // Regular movement interpolation
     player.x += (player.targetX - player.x) * MOVE_SPEED;
     player.y += (player.targetY - player.y) * MOVE_SPEED;
 

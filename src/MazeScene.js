@@ -86,8 +86,8 @@ export function MazeScene() {
 
     movementController.updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyColor);
     
-    camera.position.x = player.x + 0.2 * Math.sin(player.rotation);
-    camera.position.z = player.y + 0.2 * Math.cos(player.rotation);
+    camera.position.x = player.x + 0.0 * Math.sin(player.rotation);
+    camera.position.z = player.y + 0.0 * Math.cos(player.rotation);
     camera.position.y = 0.5 + player.jumpHeight;
     camera.rotation.y = player.rotation;
   });
