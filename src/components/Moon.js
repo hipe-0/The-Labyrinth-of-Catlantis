@@ -33,7 +33,7 @@ export function Moon() {
   return (
     <group ref={orbitRef} position={[0, 0, 0]}>
       <group ref={moonRef} position={POSITION}>
-        <mesh>
+        <mesh castShadow receiveShadow>
           <sphereGeometry args={[SIZE, SEGMENTS, SEGMENTS]} />
           <meshStandardMaterial 
             color={OUTER_COLOR}
@@ -41,7 +41,7 @@ export function Moon() {
             emissiveIntensity={OUTER_EMISSIVE}
           />
         </mesh>
-        <mesh>
+        <mesh castShadow receiveShadow>
           <sphereGeometry args={[INNER_SIZE, SEGMENTS, SEGMENTS]} />
           <meshStandardMaterial 
             color={INNER_COLOR}

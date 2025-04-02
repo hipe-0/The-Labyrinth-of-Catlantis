@@ -10,9 +10,22 @@ import { StarField } from './components/StarField';
 import { Moon } from './components/Moon';
 import { Floor } from './components/Floor';
 import { ExitBeacon } from './components/ExitBeacon';
+import { GAME_CONFIG } from './config/gameConfig';
 
 export function MazeScene({ isGameStarted }) {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
+  const moonLightRef = useRef();
+  
+  // Enable shadows in the renderer
+  useEffect(() => {
+    gl.shadowMap.enabled = true;
+    gl.shadowMap.type = THREE.PCFSoftShadowMap;
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
+    gl.toneMappingExposure = 1;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
+    gl.physicallyCorrectLights = true;
+    gl.renderer = gl;
+  }, [gl]);
   
   const playerRef = useRef({
     x: 1,  // Start at center of first walkable tile
@@ -47,9 +60,7 @@ export function MazeScene({ isGameStarted }) {
     const gridX = Math.round(player.x);
     const gridZ = Math.round(player.y);
 
-    return gridX === exitX && 
-           gridZ === exitY && 
-           player.collectedCats.size === 6;
+    return gridX === exitX && gridZ === exitY;
   }, [exitX, exitY]);
 
   useEffect(() => {
@@ -96,33 +107,44 @@ export function MazeScene({ isGameStarted }) {
     camera.position.z = player.y;
     camera.position.y = 0.5 + player.jumpHeight;
     camera.rotation.set(0, player.rotation, 0);  // Only rotate around Y axis
+
+    // Update moon light position
+    if (moonLightRef.current) {
+      const moonPosition = GAME_CONFIG.MOON.POSITION;
+      moonLightRef.current.position.set(
+        moonPosition[0],
+        moonPosition[1],
+        moonPosition[2]
+      );
+    }
   });
 
   return (
     <>
       <color attach="background" args={[skyColor]} />
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} />
       
-      {/* Moonlight with soft shadows */}
-      <pointLight 
-        position={[30, 30, 30]} 
-        intensity={0.5} 
-        color="#AAAAFF" 
-        castShadow 
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+      {/* Add point light for moon lighting */}
+      <pointLight
+        ref={moonLightRef}
+        intensity={200}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={1}
+        shadow-camera-far={200}
+        shadow-bias={-0.0001}
       />
       
-      <StarField />
       <Moon />
+      <StarField />
       <Floor />
-      <ExitBeacon exitX={exitX} exitY={exitY} />
-
-      {cats.map((cat, index) => !collectedCats.has(index) && (
-        <group key={`cat-${index}`} position={[cat.x, 0, cat.y]}>
-          <CuteCat color={cat.color} />
-        </group>
+      <ExitBeacon position={[exitX, 0.5, exitY]} receiveShadow />
+      {cats.map((cat, index) => (
+        <CuteCat 
+          key={index} 
+          position={[cat.x, 0.5, cat.y]} 
+          receiveShadow 
+        />
       ))}
 
       {generatedMaze.map((row, z) => 
@@ -145,9 +167,9 @@ export function MazeScene({ isGameStarted }) {
                 >
                   <boxGeometry args={[1, 1, 1]} />
                   <meshStandardMaterial 
-                    color="black" 
-                    emissive="#333333" 
-                    emissiveIntensity={0.3} 
+                    color="#FFFFFF"
+                    metalness={0}
+                    roughness={0.5}
                   />
                 </mesh>
                 <lineSegments scale={[horizontalScaleX, verticalScale, 1]}>
