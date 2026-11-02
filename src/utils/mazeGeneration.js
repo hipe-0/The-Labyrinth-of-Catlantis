@@ -65,7 +65,7 @@ export const placeCats = (maze) => {
     const x = Math.floor(Math.random() * maze[0].length);
     const y = Math.floor(Math.random() * maze.length);
     
-    if (maze[y][x] === 0 && !cats.some(cat => cat.x === x && cat.y === y)) {
+    if (maze[y][x] === 0 && !(x === 1 && y === 1) && !cats.some(cat => cat.x === x && cat.y === y)) {
       cats.push({ 
         x, 
         y,

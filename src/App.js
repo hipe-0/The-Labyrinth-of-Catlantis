@@ -1,38 +1,82 @@
 // src/App.js
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { MazeScene } from './MazeScene';
 import { StartScreen } from './components/StartScreen';
+import { MazeScene } from './MazeScene';
+import { TouchControls } from './components/TouchControls';
 
 function App() {
   const [isGameStarted, setIsGameStarted] = useState(false);
+  const [hasTouch, setHasTouch] = useState(false);
 
-  const handleStart = () => {
-    setIsGameStarted(true);
-    window.focus(); // Focus window when game starts
+  // Touch input is intentionally kept in refs, not React state. This avoids
+  // re-rendering the 3D scene every time a button is pressed or released.
+  const touchDirectionRef = useRef(null);
+  const jumpRequestRef = useRef(0);
+
+  const handleTouchMove = (direction) => {
+    setHasTouch(true);
+    touchDirectionRef.current = direction;
+  };
+
+  const handleTouchJump = () => {
+    setHasTouch(true);
+    jumpRequestRef.current += 1;
+  };
+
+  // Add touch detection on the entire app
+  const handleTouchStart = () => {
+    setHasTouch(true);
   };
 
   return (
-    <div 
-      style={{ width: '100vw', height: '100vh', margin: 0, overflow: 'hidden' }}
-      onClick={() => isGameStarted && window.focus()}
-      tabIndex={-1}
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        overflow: 'hidden',
+        background: '#000',
+        touchAction: 'none', // Prevent default touch behaviors
+        overscrollBehavior: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none'
+      }}
+      onTouchStart={handleTouchStart}
+      onContextMenu={(event) => event.preventDefault()}
     >
-      <Canvas 
-        style={{
-          background: 'black'
-        }}
-        camera={{ 
-          fov: 75, 
-          near: 0.1, 
-          far: 1000,
-          position: [1, 0.5, 1]  // Match player starting position
-        }}
-        gl={{ antialias: true }}
-      >
-        <MazeScene isGameStarted={isGameStarted} />
-      </Canvas>
-      {!isGameStarted && <StartScreen onStart={handleStart} />}
+      {!isGameStarted ? (
+        <StartScreen onStart={() => setIsGameStarted(true)} />
+      ) : (
+        <>
+          <Canvas
+            style={{
+              background: 'black',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+            }}
+            camera={{
+              fov: 75,
+              near: 0.1,
+              far: 1000,
+              position: [1, 0.5, 1]
+            }}
+            dpr={[1, 1.5]}
+            gl={{ antialias: true, powerPreference: 'high-performance' }}
+          >
+            <MazeScene
+              isGameStarted={isGameStarted}
+              touchDirectionRef={touchDirectionRef}
+              jumpRequestRef={jumpRequestRef}
+            />
+          </Canvas>
+          {hasTouch && (
+            <TouchControls onMove={handleTouchMove} onJump={handleTouchJump} />
+          )}
+        </>
+      )}
     </div>
   );
 }

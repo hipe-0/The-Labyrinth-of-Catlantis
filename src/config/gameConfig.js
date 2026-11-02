@@ -13,11 +13,13 @@ export const GAME_CONFIG = {
 
   // Movement Parameters
   MOVE_SPEED: 0.1,
-  ROTATE_SPEED: 0.1,
+  MOVE_FIXED_STEP: 1 / 144, // Fixed simulation step; same speed on 60/144 Hz
+  ROTATE_SMOOTHING: 15, // Exponential rotation smoothing rate (1/second)
   MOVE_STRIDE: 0.5,  // Distance per grid movement
   
   // Rotation Constants
   ROTATION_ANGLE: Math.PI / 4, // 45 degrees
+  ROTATION_STEP_INTERVAL: 0.09, // Seconds per 45° step while held (~500°/s)
   ROTATION_THRESHOLD: 0.01, // Precision for rotation alignment
   
   // Jump Mechanics

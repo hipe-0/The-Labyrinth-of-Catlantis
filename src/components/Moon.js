@@ -1,9 +1,12 @@
 // src/components/Moon.js
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import { GAME_CONFIG } from '../config/gameConfig';
 
-export function Moon() {
+const moonWorldPosition = new THREE.Vector3();
+
+export function Moon({ lightRef }) {
   const moonRef = useRef();
   const orbitRef = useRef();
   const { 
@@ -27,6 +30,10 @@ export function Moon() {
     }
     if (moonRef.current) {
       moonRef.current.rotation.y += SPIN_SPEED * delta;
+    }
+    if (lightRef?.current && moonRef.current) {
+      moonRef.current.getWorldPosition(moonWorldPosition);
+      lightRef.current.position.copy(moonWorldPosition);
     }
   });
 

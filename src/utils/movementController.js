@@ -8,14 +8,18 @@ export const createMovementController = (
   setSkyColor, 
   cats
 ) => {
-  const { 
-    MOVE_SPEED, 
-    ROTATE_SPEED, 
-    ROTATION_ANGLE, 
+  const {
+    MOVE_SPEED,
+    MOVE_FIXED_STEP,
+    ROTATE_SMOOTHING,
+    ROTATION_ANGLE,
+    ROTATION_STEP_INTERVAL,
     ROTATION_THRESHOLD,
     MOVE_STRIDE,
     GRID_REPEL
   } = GAME_CONFIG;
+
+  const MAX_MOVEMENT_SUBSTEPS = 15;
 
   const keyState = {
     ArrowUp: false,
@@ -54,6 +58,8 @@ export const createMovementController = (
   };
 
   const handleKeyDown = (event) => {
+    const player = playerRef.current;
+
     switch(event.key) {
       case 'ArrowUp':
         keyState.ArrowUp = true;
@@ -62,13 +68,24 @@ export const createMovementController = (
         keyState.ArrowDown = true;
         break;
       case 'ArrowLeft':
-        keyState.ArrowLeft = true;
+        if (!keyState.ArrowLeft) {
+          keyState.ArrowLeft = true;
+          player.targetRotation = normalizeRotation(
+            player.targetRotation + ROTATION_ANGLE
+          );
+          player.rotationStepTimer = 0;
+        }
         break;
       case 'ArrowRight':
-        keyState.ArrowRight = true;
+        if (!keyState.ArrowRight) {
+          keyState.ArrowRight = true;
+          player.targetRotation = normalizeRotation(
+            player.targetRotation - ROTATION_ANGLE
+          );
+          player.rotationStepTimer = 0;
+        }
         break;
       case ' ':
-        const player = playerRef.current;
         if (!player.isJumping) {
           player.isJumping = true;
           player.jumpVelocity = GAME_CONFIG.JUMP_VELOCITY;
@@ -100,10 +117,14 @@ export const createMovementController = (
   };
 
   const updatePlayerMovement = (player, delta, cats, setCollectedCats, setSkyColor) => {
+    // Clamp very long frames (tab switches, stalls) so physics and rotation do
+    // not jump by a large amount at once.
+    const frameDelta = Math.min(delta, 0.1);
+
     // Jump physics with gravity
     if (player.isJumping) {
-      player.jumpVelocity -= GAME_CONFIG.GRAVITY * delta;
-      player.jumpHeight += player.jumpVelocity * delta;
+      player.jumpVelocity -= GAME_CONFIG.GRAVITY * frameDelta;
+      player.jumpHeight += player.jumpVelocity * frameDelta;
 
       if (player.jumpHeight <= 0) {
         player.jumpHeight = 0;
@@ -112,73 +133,112 @@ export const createMovementController = (
       }
     }
 
-    let newTargetX = player.targetX;
-    let newTargetY = player.targetY;
-    let movementOccurred = false;
+    const collectCatAt = (targetX, targetY) => {
+      const catIndex = cats.findIndex(cat =>
+        Math.round(cat.x) === Math.round(targetX) &&
+        Math.round(cat.y) === Math.round(targetY)
+      );
 
-    // Forward movement
-    if (keyState.ArrowUp) {
-      const newX = player.x - Math.sin(player.rotation) * MOVE_STRIDE;
-      const newZ = player.y - Math.cos(player.rotation) * MOVE_STRIDE;
-      
-      if (checkCollision(newX, newZ)) {
-        newTargetX = avoidGridLines(newX);
-        newTargetY = avoidGridLines(newZ);
-        movementOccurred = true;
-        
-        const catIndex = cats.findIndex(cat => 
-          Math.round(cat.x) === Math.round(newTargetX) && 
-          Math.round(cat.y) === Math.round(newTargetY)
-        );
-        
-        if (catIndex !== -1) {
-          const newCollectedCats = new Set(player.collectedCats);
-          if (!newCollectedCats.has(catIndex)) {
-            newCollectedCats.add(catIndex);
-            player.collectedCats = newCollectedCats;
-            setCollectedCats(newCollectedCats);
+      if (catIndex === -1) {
+        return;
+      }
 
-            const lightenPercentage = (newCollectedCats.size / 6) * 40;
-            const newSkyColor = `hsl(240, ${100 - lightenPercentage}%, ${50 + lightenPercentage/2}%)`;
-            setSkyColor(newSkyColor);
-          }
+      const newCollectedCats = new Set(player.collectedCats);
+      if (newCollectedCats.has(catIndex)) {
+        return;
+      }
+
+      newCollectedCats.add(catIndex);
+      player.collectedCats = newCollectedCats;
+      setCollectedCats(newCollectedCats);
+
+      const lightenPercentage = (newCollectedCats.size / cats.length) * 40;
+      setSkyColor(
+        `hsl(240, ${100 - lightenPercentage}%, ${50 + lightenPercentage / 2}%)`
+      );
+    };
+
+    const updateMovementTarget = () => {
+      let newTargetX = player.targetX;
+      let newTargetY = player.targetY;
+      let movementOccurred = false;
+
+      // Forward movement
+      if (keyState.ArrowUp) {
+        const newX = player.x - Math.sin(player.rotation) * MOVE_STRIDE;
+        const newZ = player.y - Math.cos(player.rotation) * MOVE_STRIDE;
+        
+        if (checkCollision(newX, newZ)) {
+          newTargetX = avoidGridLines(newX);
+          newTargetY = avoidGridLines(newZ);
+          movementOccurred = true;
+          collectCatAt(newTargetX, newTargetY);
         }
       }
-    }
 
-    // Backward movement
-    if (keyState.ArrowDown) {
-      const newX = player.x + Math.sin(player.rotation) * MOVE_STRIDE;
-      const newZ = player.y + Math.cos(player.rotation) * MOVE_STRIDE;
-      
-      if (checkCollision(newX, newZ)) {
-        newTargetX = avoidGridLines(newX);
-        newTargetY = avoidGridLines(newZ);
-        movementOccurred = true;
+      // Backward movement
+      if (keyState.ArrowDown) {
+        const newX = player.x + Math.sin(player.rotation) * MOVE_STRIDE;
+        const newZ = player.y + Math.cos(player.rotation) * MOVE_STRIDE;
+
+        if (checkCollision(newX, newZ)) {
+          newTargetX = avoidGridLines(newX);
+          newTargetY = avoidGridLines(newZ);
+          movementOccurred = true;
+          collectCatAt(newTargetX, newTargetY);
+        }
       }
-    }
 
-    if (movementOccurred) {
-      player.targetX = newTargetX;
-      player.targetY = newTargetY;
-    }
+      if (movementOccurred) {
+        player.targetX = newTargetX;
+        player.targetY = newTargetY;
+      }
+    };
     
-    // Rotate left (counterclockwise)
-    if (keyState.ArrowLeft) {
-      player.targetRotation = normalizeRotation(player.rotation + ROTATION_ANGLE);
+    // Continuous rotation while a turn key/button is held. Steps are timed in
+    // seconds, not frames, so 60 Hz and 144 Hz devices rotate at the same rate.
+    if (keyState.ArrowLeft || keyState.ArrowRight) {
+      player.rotationStepTimer = (player.rotationStepTimer || 0) + frameDelta;
+      while (player.rotationStepTimer >= ROTATION_STEP_INTERVAL) {
+        player.rotationStepTimer -= ROTATION_STEP_INTERVAL;
+        if (keyState.ArrowLeft) {
+          player.targetRotation = normalizeRotation(
+            player.targetRotation + ROTATION_ANGLE
+          );
+        }
+        if (keyState.ArrowRight) {
+          player.targetRotation = normalizeRotation(
+            player.targetRotation - ROTATION_ANGLE
+          );
+        }
+      }
+    } else {
+      player.rotationStepTimer = 0;
     }
 
-    // Rotate right (clockwise)
-    if (keyState.ArrowRight) {
-      player.targetRotation = normalizeRotation(player.rotation - ROTATION_ANGLE);
+    // Fixed-timestep movement. 144 Hz matches the original high-refresh PC
+    // feel; 60 Hz phones run the same number of simulation steps per second.
+    player.movementAccumulator = Math.min(
+      (player.movementAccumulator || 0) + frameDelta,
+      MOVE_FIXED_STEP * MAX_MOVEMENT_SUBSTEPS
+    );
+
+    let movementSteps = 0;
+    while (
+      player.movementAccumulator >= MOVE_FIXED_STEP &&
+      movementSteps < MAX_MOVEMENT_SUBSTEPS
+    ) {
+      updateMovementTarget();
+      player.x += (player.targetX - player.x) * MOVE_SPEED;
+      player.y += (player.targetY - player.y) * MOVE_SPEED;
+      player.movementAccumulator -= MOVE_FIXED_STEP;
+      movementSteps++;
     }
 
-    // Regular movement interpolation
-    player.x += (player.targetX - player.x) * MOVE_SPEED;
-    player.y += (player.targetY - player.y) * MOVE_SPEED;
-
-    // Smooth rotation interpolation
-    player.rotation += (player.targetRotation - player.rotation) * ROTATE_SPEED;
+    // Smooth rotation interpolation. Exponential smoothing is frame-rate
+    // independent, so the turn feels the same at 30, 60, or 144 fps.
+    const rotationBlend = 1 - Math.exp(-ROTATE_SMOOTHING * frameDelta);
+    player.rotation += (player.targetRotation - player.rotation) * rotationBlend;
 
     // Precise rotation alignment
     if (Math.abs(player.rotation - player.targetRotation) < ROTATION_THRESHOLD) {

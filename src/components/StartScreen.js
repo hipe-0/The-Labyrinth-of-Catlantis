@@ -4,10 +4,9 @@ export function StartScreen({ onStart }) {
   return (
     <div style={{
       position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
+      inset: 0,
+      width: '100%',
+      height: '100%',
       backgroundColor: 'rgba(0, 0, 0, 0.8)',
       display: 'flex',
       flexDirection: 'column',
@@ -15,23 +14,32 @@ export function StartScreen({ onStart }) {
       alignItems: 'center',
       color: 'white',
       zIndex: 20,
-      fontFamily: 'Arial, sans-serif'
+      padding: '24px',
+      boxSizing: 'border-box',
+      textAlign: 'center',
+      fontFamily: 'Arial, sans-serif',
+      overflow: 'hidden'
     }}>
       <h1 style={{
-        fontSize: '3em',
-        marginBottom: '20px',
+        fontSize: 'clamp(2rem, 8vw, 3rem)',
+        lineHeight: 1.15,
+        margin: '0 0 20px',
         textShadow: '0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073'
       }}>
         The Labyrinth of Catlantis
       </h1>
-      <p style={{ fontSize: '1.2em', marginBottom: '30px' }}>
+      <p style={{
+        fontSize: 'clamp(1rem, 4vw, 1.2rem)',
+        margin: '0 0 30px',
+        maxWidth: '600px'
+      }}>
         Find all the lost cats in the mysterious maze
       </p>
-      <button 
+      <button
         onClick={onStart}
         style={{
-          padding: '15px 30px',
-          fontSize: '1.2em',
+          padding: 'clamp(12px, 3vw, 15px) clamp(24px, 6vw, 30px)',
+          fontSize: 'clamp(1rem, 4vw, 1.2rem)',
           backgroundColor: '#e60073',
           border: 'none',
           borderRadius: '5px',
@@ -45,13 +53,14 @@ export function StartScreen({ onStart }) {
       >
         Start Game
       </button>
-      <p style={{ 
+      <p style={{
         marginTop: '20px',
-        fontSize: '0.9em',
-        opacity: 0.8 
+        marginBottom: 0,
+        fontSize: 'clamp(0.8rem, 3vw, 0.9rem)',
+        opacity: 0.8
       }}>
         Use Arrow Keys to Navigate | Space to Jump
       </p>
     </div>
   );
-} 
+}
