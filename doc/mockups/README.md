@@ -34,3 +34,5 @@ cats. The horizon glow sits at the bottom, behind the maze silhouette.
 3. Horizon: should the far ring be dimmer, or all outlines equal white?
 4. Sky: which six palettes should be assigned to the six cats?
 5. Sky: keep the optional rose/teal variants or use only the four requested families?
+6. 3D: should physical heights scale with radius (for example 10 / 13 / 16) so the
+   ridgelines stay visually close from inside the maze?
