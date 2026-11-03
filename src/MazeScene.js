@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 import { generateMaze, getStartRotation } from './utils/mazeGeneration';
 import { createMovementController } from './utils/movementController';
+import { GAME_CONFIG } from './config/gameConfig';
 import { CuteCat } from './components/CuteCat';
 import { StarField } from './components/StarField';
 import { Moon } from './components/Moon';
@@ -19,12 +20,16 @@ const TOUCH_KEY_MAP = {
   right: 'ArrowRight',
 };
 
+const MAZE_CENTER = (GAME_CONFIG.MAZE_WIDTH - 1) / 2;
+const { SHADOW } = GAME_CONFIG;
+
 export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) {
   const { camera, gl } = useThree();
   const lastTouchDirectionRef = useRef(null);
   const lastJumpRequestRef = useRef(0);
   const lightRef = useRef();
   const shadowUpdateTimerRef = useRef(0);
+  const lastShadowFocusRef = useRef({ x: 1, z: 1 });
 
   const [mazeData, setMazeData] = useState(() => generateMaze());
   const { maze: generatedMaze, exitX, exitY, cats } = mazeData;
@@ -67,10 +72,12 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
     })))
   ), [generatedMaze]);
 
-  // The moonlight aims at the centre of the maze, not the world origin.
+  // The moonlight aims at the shadow focus, which follows the player. The
+  // light position is shifted by the same offset in the frame loop, so the
+  // moonlight direction stays constant while the shadow zone moves.
   const lightTarget = useMemo(() => {
     const target = new THREE.Object3D();
-    target.position.set(15, 0, 15);
+    target.position.set(MAZE_CENTER, 0, MAZE_CENTER);
     return target;
   }, []);
 
@@ -89,6 +96,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
   useEffect(() => {
     gl.shadowMap.needsUpdate = true;
     shadowUpdateTimerRef.current = 0;
+    lastShadowFocusRef.current = { x: 1, z: 1 };
   }, [gl, generatedMaze]);
 
   // Add keyboard event listeners
@@ -198,10 +206,26 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
     camera.position.y = 0.5 + player.jumpHeight;
     camera.rotation.set(0, player.rotation, 0);
 
-    // The moon (and its light) move slowly. Refresh the static shadow map a
-    // few times per second instead of every frame.
+    // Moon.js has already copied the moon's world position into the light this
+    // frame (child layout effects subscribe first). Shift both the light and
+    // its target by the player's offset from the maze centre: the moonlight
+    // direction stays constant while the shadow frustum follows the player.
+    const shadowOffsetX = player.x - MAZE_CENTER;
+    const shadowOffsetZ = player.y - MAZE_CENTER;
+    if (lightRef.current) {
+      lightRef.current.position.x += shadowOffsetX;
+      lightRef.current.position.z += shadowOffsetZ;
+    }
+    lightTarget.position.set(player.x, 0, player.y);
+
+    // Refresh the shadow map immediately while walking, and at 5 Hz while
+    // standing still so the slowly moving moon still updates the light.
     shadowUpdateTimerRef.current += delta;
-    if (shadowUpdateTimerRef.current >= 0.2) {
+    const shadowMoved =
+      Math.abs(player.x - lastShadowFocusRef.current.x) > SHADOW.MOVE_THRESHOLD ||
+      Math.abs(player.y - lastShadowFocusRef.current.z) > SHADOW.MOVE_THRESHOLD;
+    if (shadowMoved || shadowUpdateTimerRef.current >= SHADOW.IDLE_UPDATE_INTERVAL) {
+      lastShadowFocusRef.current = { x: player.x, z: player.y };
       shadowUpdateTimerRef.current = 0;
       gl.shadowMap.needsUpdate = true;
     }
@@ -211,7 +235,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
     <>
       <color attach="background" args={[skyColor]} />
 
-      {/* The moonlight follows the moon's world position; see Moon.js. */}
+      {/* Moon.js sets the moonlight direction; the target follows the player. */}
       <primitive object={lightTarget} />
       <directionalLight
         ref={lightRef}
@@ -220,14 +244,14 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
         intensity={3}
         color="#dfe8ff"
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={SHADOW.MAP_SIZE}
+        shadow-mapSize-height={SHADOW.MAP_SIZE}
         shadow-camera-near={1}
         shadow-camera-far={120}
-        shadow-camera-left={-25}
-        shadow-camera-right={25}
-        shadow-camera-top={25}
-        shadow-camera-bottom={-25}
+        shadow-camera-left={-SHADOW.ZONE_HALF_SIZE}
+        shadow-camera-right={SHADOW.ZONE_HALF_SIZE}
+        shadow-camera-top={SHADOW.ZONE_HALF_SIZE}
+        shadow-camera-bottom={-SHADOW.ZONE_HALF_SIZE}
         shadow-bias={-0.0001}
         shadow-normalBias={0.02}
       />

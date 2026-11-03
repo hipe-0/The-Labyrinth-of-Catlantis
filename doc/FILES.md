@@ -152,15 +152,16 @@ Responsibilities:
    keys / Space. Touch input does not re-render the 3D scene.
 5. **Renderer setup** — `App.js` enables shadows on the `<Canvas>` before the first
    render (materials compile without shadow support if this happens later). `MazeScene`
-   sets ACES tone mapping and sRGB output, and refreshes the static shadow map at 5 Hz
-   while the moon moves and immediately on a new maze.
+   sets ACES tone mapping and sRGB output. The shadow frustum follows the player in a
+   20×20 zone, refreshes every frame while walking, at 5 Hz when idle, and immediately
+   on a new maze.
 6. **Frame loop** — applies touch input, checks exit, updates movement, syncs camera.
 7. **Scene graph** — background colour, moon-following directional light, Moon,
    StarField, Floor, ExitBeacon, cats, memoized walls.
 
 Key constants used here: camera eye height `0.5`, directional light intensity `3`,
-light target `(15, 0, 15)`, shadow map `2048`, wall random scale ranges, exit beacon
-position.
+follow-player shadow target, 20×20 shadow zone, `2048²` map, wall random scale ranges,
+exit beacon position.
 
 Known quirks: wall scales are memoized per maze and stable; cats are wrapped in
 positioned groups with their palette; `ExitBeacon` receives `exitX`/`exitY` correctly.
@@ -191,6 +192,7 @@ GAME_CONFIG = {
   JUMP_VELOCITY: 4,
   GRAVITY: 9.8,
   GRID_REPEL: 0.2,
+  SHADOW: { ZONE_HALF_SIZE, MAP_SIZE, IDLE_UPDATE_INTERVAL, MOVE_THRESHOLD },
   SKY: { STAR_COUNT, STAR_SIZE, STAR_RADIUS, ROTATION_SPEED, TILT_ANGLE },
   MOON: { ORBIT_SPEED, SPIN_SPEED, POSITION, MIN_LIGHT_HEIGHT, SIZE, INNER_SIZE,
           SEGMENTS, OUTER_COLOR, INNER_COLOR, OUTER_EMISSIVE, INNER_EMISSIVE }
@@ -310,9 +312,10 @@ Two nested emissive spheres:
 - Wrapped in an orbit group tilted by `SKY.TILT_ANGLE` and rotated on Y over time.
 - The moon itself spins on Y.
 - Receives `lightRef`; every frame copies the moon's world position into the
-  directional light so the moonlight follows the visible moon. The Y coordinate is
-  clamped to `MOON.MIN_LIGHT_HEIGHT` so the light never drops to the horizon and leaves
-  the floor unlit.
+  directional light so the moonlight direction follows the visible moon. The Y
+  coordinate is clamped to `MOON.MIN_LIGHT_HEIGHT` so the light never drops to the
+  horizon and leaves the floor unlit. `MazeScene` then shifts the light with the player
+  so the shadow frustum follows without changing the direction.
 
 Reads all values from `GAME_CONFIG.MOON`.
 

@@ -29,6 +29,14 @@ export const GAME_CONFIG = {
   // Collision and Movement
   GRID_REPEL: 0.2,  // Controls how far from grid lines the player is kept
   
+  // Shadows
+  SHADOW: {
+    ZONE_HALF_SIZE: 10, // 20x20 world-unit shadowed area around the player
+    MAP_SIZE: 2048,
+    IDLE_UPDATE_INTERVAL: 0.2, // Seconds between refreshes while standing still
+    MOVE_THRESHOLD: 0.01, // Minimum movement before refreshing while walking
+  },
+
   // Sky and lighting
   SKY: {
     STAR_COUNT: 1000,

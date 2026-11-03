@@ -22,6 +22,7 @@ have now been corrected in the working tree.
 | --- | --- | --- |
 | Shadow rendering | The Canvas enables shadows before the first render, so materials compile with shadow support instead of silently dropping them | `App.js`, `MazeScene.js` |
 | Floor lighting | The shadow-casting moonlight is clamped to a minimum height, so the floor stays lit and wall shadows remain visible while the moon orbits | `Moon.js`, `gameConfig.js` |
+| Shadow quality | The shadow frustum follows the player in a 20×20 zone at 2048², instead of covering the whole maze at low resolution | `MazeScene.js`, `gameConfig.js` |
 
 ---
 
@@ -43,11 +44,11 @@ have now been corrected in the working tree.
 | Cat spawn | Start cell excluded from random cat placement | `mazeGeneration.js` |
 | Mobile viewport | Fixed body/viewport sizing, black background, no landscape scroll or white band | `index.css`, `App.js` |
 | Portrait controls | Larger responsive D-pad and Jump buttons | `TouchControls.js` |
-| Touch performance | Ref-based touch input (no 3D re-render), DPR cap, shadow map refreshed 5 Hz with the moon | `App.js`, `MazeScene.js` |
+| Touch performance | Ref-based touch input (no 3D re-render), DPR cap, follow-player shadow map | `App.js`, `MazeScene.js` |
 | Moonlight | Directional light follows the moon's world position; aims at the maze centre | `Moon.js`, `MazeScene.js` |
 | Movement timing | Fixed 144 Hz substeps; same walking speed on 60/144 Hz displays | `movementController.js`, `gameConfig.js` |
 | Floor shadows | Floor receives and casts shadows | `Floor.js` |
-| Shadow map | 2048² shadow map, refreshed at 5 Hz with the moon | `MazeScene.js` |
+| Shadow map | 2048² map over a 20×20 zone that follows the player; refreshed every frame while walking and at 5 Hz when idle | `MazeScene.js` |
 | Rotation timing | Time-based 45° steps and exponential smoothing; same ~250°/s at 60/144 Hz | `movementController.js`, `gameConfig.js` |
 
 ---
@@ -372,9 +373,9 @@ origin. The moon therefore moves in a circle. `Moon.js` now copies the moon's wo
 position into the directional light every frame, and `MazeScene.js` aims that light at
 the maze centre `(15, 0, 15)`.
 
-The shadow map is refreshed at 5 Hz while the moon moves (and immediately on a new
-maze), so the shadows follow the light without paying for a full shadow pass every
-frame.
+The shadow frustum follows the player in a 20×20 zone and refreshes every frame while
+walking (and immediately on a new maze). While standing still it refreshes at 5 Hz so
+the slowly moving moon still updates the light without a full shadow pass every frame.
 
 ---
 

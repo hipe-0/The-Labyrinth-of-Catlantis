@@ -104,8 +104,8 @@ reference to re-render. They are kept in sync in `movementController.js`.
 3. camera.position = (player.x, 0.5 + jumpHeight, player.y)
    camera.rotation = (0, player.rotation, 0)
 
-The directional moonlight follows the moon's world position; the shadow map refreshes a
-few times per second while the moon moves.
+The directional moonlight direction comes from the moon; the 20×20 shadow frustum
+follows the player and refreshes while walking.
 ```
 
 Important: the camera is the player. There is no visible avatar; first-person view is
@@ -357,12 +357,16 @@ It both receives and casts shadows, so wall shadows fall across the floor.
 
 ### Lighting
 
-- A single cool `directionalLight`, intensity `3`, color `#dfe8ff`, aimed at the maze
-  centre `(15, 0, 15)`, casting soft shadows (2048² shadow map, PCFSoft).
-- Its position is updated every frame from the moon's world position by `Moon.js`. The
-  height is clamped to `MOON.MIN_LIGHT_HEIGHT` (30) so the light stays above the maze
-  even when the visible moon dips toward the horizon; otherwise the floor is almost
-  unlit and its shadows disappear.
+- A single cool `directionalLight`, intensity `3`, color `#dfe8ff`, casting soft
+  shadows (PCFSoft). The shadow zone is a 20×20 world-unit area around the player with a
+  2048² map, giving about 100 shadow texels per world unit.
+- `Moon.js` sets the light direction from the moon's world position. The height is
+  clamped to `MOON.MIN_LIGHT_HEIGHT` (30) so the light stays above the maze even when
+  the visible moon dips toward the horizon; otherwise the floor is almost unlit and its
+  shadows disappear.
+- The light target follows the player. The light position is shifted by the same offset
+  from the maze centre, so the moonlight direction stays constant while the shadow
+  frustum moves with the player.
 - **No ambient fill.** Lit faces are bright; unlit faces stay black. The white
   `lineSegments` edges keep the maze readable in the dark.
 - The floor uses a dark `#2A2A2A` material so it does not wash out the scene.
@@ -370,8 +374,9 @@ It both receives and casts shadows, so wall shadows fall across the floor.
   Materials compile without shadow support if the shadow map is enabled later, and
   re-enabling it does not recompile them. `MazeScene` handles ACES tone mapping, sRGB
   output, and the shadow-map refresh.
-- The shadow map is not updated every frame; it refreshes at 5 Hz while the moon moves
-  and immediately when a new maze is generated.
+- The shadow map refreshes every frame while the player walks, at 5 Hz while standing
+  still (so the slowly moving moon still updates the light), and immediately when a new
+  maze is generated.
 
 ---
 

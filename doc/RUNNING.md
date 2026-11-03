@@ -175,10 +175,12 @@ folder is from an older build; regenerate it before deploying.
 - Rotation is time-based at ~250°/s (45° every 0.18 s), so a 144 Hz PC and a 60 Hz phone
   use the same turn rate
 - The directional moonlight follows the moon's world position, clamped to a minimum
-  height; the shadow map refreshes at 5 Hz while the moon moves
+  height; the 20×20 shadow zone follows the player and refreshes every frame while
+  walking, then at 5 Hz while standing still
 - Movement uses fixed `1/144 s` substeps; simulated speed is **3.6 units/s** at 30, 60,
   90, 120, 144, and 240 Hz
-- Floor receives and casts shadows; the shadow map is `2048²`
+- Floor receives and casts shadows; the follow-player shadow map is `2048²` over a
+  20×20 world-unit area
 - Wall scale variations were verified stable across touch-triggered re-renders
 - `build/` and `node_modules/` are generated/ignored
 
