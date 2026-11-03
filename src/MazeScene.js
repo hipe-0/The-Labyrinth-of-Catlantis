@@ -84,12 +84,11 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
     return target;
   }, []);
 
-  // Enable shadows in the renderer. The moonlight moves slowly, so the shadow
-  // map is refreshed periodically in the frame loop and immediately on maze
-  // changes.
+  // Shadows are enabled on the Canvas before the first render (see App.js), so
+  // every material compiles with shadow support. The moonlight moves slowly, so
+  // the shadow map is refreshed periodically in the frame loop and immediately
+  // on maze changes.
   useEffect(() => {
-    gl.shadowMap.enabled = true;
-    gl.shadowMap.type = THREE.PCFSoftShadowMap;
     gl.shadowMap.autoUpdate = false;
     gl.shadowMap.needsUpdate = true;
     gl.toneMapping = THREE.ACESFilmicToneMapping;

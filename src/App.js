@@ -1,6 +1,7 @@
 // src/App.js
 import React, { useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
 import { StartScreen } from './components/StartScreen';
 import { MazeScene } from './MazeScene';
 import { TouchControls } from './components/TouchControls';
@@ -48,6 +49,9 @@ function App() {
         <StartScreen onStart={() => setIsGameStarted(true)} />
       ) : (
         <>
+          {/* Shadows must be enabled before the first render, otherwise the
+              materials compile without shadow support and never receive them.
+              The map itself is refreshed by MazeScene at 5 Hz. */}
           <Canvas
             style={{
               background: 'black',
@@ -65,6 +69,7 @@ function App() {
             }}
             dpr={[1, 1.5]}
             gl={{ antialias: true, powerPreference: 'high-performance' }}
+            shadows={{ type: THREE.PCFSoftShadowMap, autoUpdate: false }}
           >
             <MazeScene
               isGameStarted={isGameStarted}

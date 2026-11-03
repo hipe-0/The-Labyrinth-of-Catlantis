@@ -359,12 +359,17 @@ It both receives and casts shadows, so wall shadows fall across the floor.
 
 - A single cool `directionalLight`, intensity `3`, color `#dfe8ff`, aimed at the maze
   centre `(15, 0, 15)`, casting soft shadows (2048² shadow map, PCFSoft).
-- Its position is updated every frame to the moon's world position by `Moon.js`, so the
-  light direction always matches the visible moon.
+- Its position is updated every frame from the moon's world position by `Moon.js`. The
+  height is clamped to `MOON.MIN_LIGHT_HEIGHT` (30) so the light stays above the maze
+  even when the visible moon dips toward the horizon; otherwise the floor is almost
+  unlit and its shadows disappear.
 - **No ambient fill.** Lit faces are bright; unlit faces stay black. The white
   `lineSegments` edges keep the maze readable in the dark.
 - The floor uses a dark `#2A2A2A` material so it does not wash out the scene.
-- Renderer setup in `MazeScene`: shadows on, ACES tone mapping, sRGB output.
+- Shadows must be enabled on the `<Canvas>` in `App.js` **before the first render**.
+  Materials compile without shadow support if the shadow map is enabled later, and
+  re-enabling it does not recompile them. `MazeScene` handles ACES tone mapping, sRGB
+  output, and the shadow-map refresh.
 - The shadow map is not updated every frame; it refreshes at 5 Hz while the moon moves
   and immediately when a new maze is generated.
 

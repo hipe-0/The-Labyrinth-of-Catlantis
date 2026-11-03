@@ -156,9 +156,10 @@ Responsibilities:
 4. **Input** — registers `keydown`/`keyup` on `document` while the game is started;
    reads `touchDirectionRef` and `jumpRequestRef` in `useFrame` and maps them to arrow
    keys / Space. Touch input does not re-render the 3D scene.
-5. **Renderer setup** — enables shadows, PCFSoft shadow map, ACES tone mapping, sRGB
-   output. The shadow map refreshes at 5 Hz while the moon moves and immediately on a
-   new maze.
+5. **Renderer setup** — `App.js` enables shadows on the `<Canvas>` before the first
+   render (materials compile without shadow support if this happens later). `MazeScene`
+   sets ACES tone mapping and sRGB output, and refreshes the static shadow map at 5 Hz
+   while the moon moves and immediately on a new maze.
 6. **Frame loop** — applies touch input, checks exit, updates movement, syncs camera.
 7. **Scene graph** — background colour, moon-following directional light, Moon,
    StarField, Floor, ExitBeacon, cats, memoized walls.
@@ -199,8 +200,8 @@ GAME_CONFIG = {
   GRID_PRECISION: 2,
   GRID_REPEL: 0.2,
   SKY: { STAR_COUNT, STAR_SIZE, STAR_RADIUS, ROTATION_SPEED, TILT_ANGLE },
-  MOON: { ORBIT_SPEED, SPIN_SPEED, POSITION, SIZE, INNER_SIZE, SEGMENTS,
-          OUTER_COLOR, INNER_COLOR, OUTER_EMISSIVE, INNER_EMISSIVE }
+  MOON: { ORBIT_SPEED, SPIN_SPEED, POSITION, MIN_LIGHT_HEIGHT, SIZE, INNER_SIZE,
+          SEGMENTS, OUTER_COLOR, INNER_COLOR, OUTER_EMISSIVE, INNER_EMISSIVE }
 }
 ```
 
@@ -319,7 +320,9 @@ Two nested emissive spheres:
 - Wrapped in an orbit group tilted by `SKY.TILT_ANGLE` and rotated on Y over time.
 - The moon itself spins on Y.
 - Receives `lightRef`; every frame copies the moon's world position into the
-  directional light so the moonlight follows the visible moon.
+  directional light so the moonlight follows the visible moon. The Y coordinate is
+  clamped to `MOON.MIN_LIGHT_HEIGHT` so the light never drops to the horizon and leaves
+  the floor unlit.
 
 Reads all values from `GAME_CONFIG.MOON`.
 

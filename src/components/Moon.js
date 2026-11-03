@@ -13,6 +13,7 @@ export function Moon({ lightRef }) {
     ORBIT_SPEED, 
     SPIN_SPEED, 
     POSITION, 
+    MIN_LIGHT_HEIGHT,
     SIZE, 
     INNER_SIZE, 
     SEGMENTS,
@@ -33,6 +34,10 @@ export function Moon({ lightRef }) {
     }
     if (lightRef?.current && moonRef.current) {
       moonRef.current.getWorldPosition(moonWorldPosition);
+      // Keep the light above the maze even when the visual moon is near the
+      // horizon; otherwise the floor is left almost unlit and its shadows
+      // disappear.
+      moonWorldPosition.y = Math.max(moonWorldPosition.y, MIN_LIGHT_HEIGHT);
       lightRef.current.position.copy(moonWorldPosition);
     }
   });

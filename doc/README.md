@@ -39,7 +39,7 @@ run it, and which parts are currently unfinished or broken.
 | Local toolchain | Ready | Node 24.18 / npm 11.16 installed, dependencies resolve, `npm start` compiles and serves HTTP 200, `npm run build` succeeds |
 | Git working tree | Not ready | `Touch-control` is local-only; 3 modified files + untracked touch controls/docs/launcher |
 | Branch state | Not ready | Remote has only `main` and `gh-pages`; local `main` is 1 commit ahead with `32fb27f "shading trial, not working"` |
-| Game code | Playable, needs device testing | Touch movement, movement/rotation timing, jump, wall jitter, cat/exit/win, lighting, floor shadows, and spawn view were fixed on 2026-11-02; low-priority items remain in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
+| Game code | Playable, needs device testing | Touch movement, movement/rotation timing, jump, wall jitter, cat/exit/win, lighting, floor shadows, and spawn view were fixed on 2026-11-02; the shadow-rendering regression was fixed on 2026-11-03; low-priority items remain in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 | Tests / CI | Missing | No test files, no CI workflow, no license, no `.nvmrc`/`engines` |
 | Published site | Stale | `gh-pages` and the live site are from 2025-04-01, still titled "React App" |
 

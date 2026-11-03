@@ -2,7 +2,8 @@
 
 These notes describe the current working tree (`Touch-control` branch, with
 uncommitted changes). The high/medium issues from the original touch refactor were
-fixed on **2026-11-02**; the remaining open items are marked in the summary table.
+fixed on **2026-11-02**, and the shadow-rendering regression was fixed on
+**2026-11-03**; the remaining open items are marked in the summary table.
 The detailed sections are kept as a record of the original analysis.
 
 The uncommitted touch-control refactor was incomplete: several things that worked in
@@ -12,6 +13,15 @@ have now been corrected in the working tree.
 > Verified 2026-11-02: `origin/main` at `258f564` still has the correct cat wrapper,
 > `ExitBeacon` props, and rounded exit check. The live site is built from the
 > `gh-pages` branch at `1f41a2c`, which is based on the same `main` baseline.
+
+---
+
+## Fixes applied on 2026-11-03
+
+| Area | Change | File |
+| --- | --- | --- |
+| Shadow rendering | The Canvas enables shadows before the first render, so materials compile with shadow support instead of silently dropping them | `App.js`, `MazeScene.js` |
+| Floor lighting | The shadow-casting moonlight is clamped to a minimum height, so the floor stays lit and wall shadows remain visible while the moon orbits | `Moon.js`, `gameConfig.js` |
 
 ---
 
@@ -68,6 +78,8 @@ have now been corrected in the working tree.
 | 20 | Fixed | Medium | Portrait touch buttons were too small | `TouchControls.js` |
 | 21 | Fixed | Medium | Touch input caused a 3D re-render on every press | `App.js`, `MazeScene.js` |
 | 22 | Fixed | High | Rotation was ~3× faster at 144 Hz than at 60 Hz | `movementController.js`, `gameConfig.js` |
+| 23 | Fixed | High | Shadows were enabled after the first render, so materials compiled without shadow support and never received them | `App.js`, `MazeScene.js` |
+| 24 | Fixed | Medium | Moonlight followed the moon down to the horizon, leaving the floor unlit and floor shadows invisible | `Moon.js`, `gameConfig.js` |
 
 > The detailed sections below preserve the original analysis. Items marked **Fixed**
 > above are already corrected in the current source.

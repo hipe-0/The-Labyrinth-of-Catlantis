@@ -43,6 +43,10 @@ export const GAME_CONFIG = {
     ORBIT_SPEED: 0.05,
     SPIN_SPEED: 0.02,
     POSITION: [30, 30, 30],
+    // The moon dips toward the horizon during its tilted orbit. The shadow
+    // light is kept at least this high so the floor always catches light and
+    // wall shadows stay readable.
+    MIN_LIGHT_HEIGHT: 30,
     SIZE: 5,
     INNER_SIZE: 4.8,
     SEGMENTS: 32,
