@@ -15,6 +15,10 @@ Three concentric low-poly mountain rings around the 31 × 31 maze:
 - The near black fill masks the middle layer, which masks the far layer; the crossed
   white outlines make the fake-parallax effect readable.
 - A recentred/extended ground plane is required so the rings fit.
+- 3D note: from inside the maze, equal physical heights make the nearest ring look
+  tallest. To keep the ridgelines intersecting on screen, the physical heights should
+  grow with the ring radius so their angular heights stay close; the exact values need
+  a quick in-engine test.
 
 ## `sky-gradients.png`
 
