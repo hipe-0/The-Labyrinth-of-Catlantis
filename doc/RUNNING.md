@@ -78,8 +78,13 @@ npx serve -s build
 npm test
 ```
 
-Starts Jest in watch mode. There are currently **no test files**, so it will report
-that no tests were found. `src/setupTests.js` only registers jest-dom matchers.
+Starts Jest in watch mode. The current smoke tests cover the Enter/Space start keys and
+spawn orientation. `src/setupTests.js` registers jest-dom matchers. For CI-style runs:
+
+```bat
+set CI=true
+npm test -- --watchAll=false
+```
 
 ### Deploy to GitHub Pages
 
@@ -167,11 +172,11 @@ folder is from an older build; regenerate it before deploying.
     height is 390, body background is black, and there is no white band
 - Touch input now writes to refs and is applied in `useFrame`; pressing a button does
   not re-render the 3D scene
-- Rotation is time-based at ~500°/s: measured 500.3°/s over a 2 s hold at ~57 fps, so a
-  144 Hz PC and a 60 Hz phone use the same turn rate
-- The directional moonlight follows the moon's world position exactly; the shadow map
-  refreshes at 5 Hz while the moon moves
-- Movement uses fixed `1/144 s` substeps; simulated speed is **7.2 units/s** at 30, 60,
+- Rotation is time-based at ~250°/s (45° every 0.18 s), so a 144 Hz PC and a 60 Hz phone
+  use the same turn rate
+- The directional moonlight follows the moon's world position, clamped to a minimum
+  height; the shadow map refreshes at 5 Hz while the moon moves
+- Movement uses fixed `1/144 s` substeps; simulated speed is **3.6 units/s** at 30, 60,
   90, 120, 144, and 240 Hz
 - Floor receives and casts shadows; the shadow map is `2048²`
 - Wall scale variations were verified stable across touch-triggered re-renders

@@ -232,7 +232,7 @@ slightly irregular (e.g. `1 → 1.7 → 2.2 → 2.7 …`).
 - Holding left/right sets `keyState`; the first press advances `targetRotation` by one
   45° step immediately.
 - While held, a timer advances `targetRotation` by another `π/4` every
-  `ROTATION_STEP_INTERVAL` (0.09 s), i.e. about **500°/s**. This is time-based, not
+  `ROTATION_STEP_INTERVAL` (0.18 s), i.e. about **250°/s**. This is time-based, not
   frame-based, so 60 Hz and 144 Hz devices rotate at the same speed.
 - `normalizeRotation` snaps the target to the nearest multiple of `π/4`.
 - `rotation` interpolates toward `targetRotation` using exponential smoothing

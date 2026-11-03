@@ -48,7 +48,7 @@ have now been corrected in the working tree.
 | Movement timing | Fixed 144 Hz substeps; same walking speed on 60/144 Hz displays | `movementController.js`, `gameConfig.js` |
 | Floor shadows | Floor receives and casts shadows | `Floor.js` |
 | Shadow map | 2048² shadow map, refreshed at 5 Hz with the moon | `MazeScene.js` |
-| Rotation timing | Time-based 45° steps and exponential smoothing; same ~500°/s at 60/144 Hz | `movementController.js`, `gameConfig.js` |
+| Rotation timing | Time-based 45° steps and exponential smoothing; same ~250°/s at 60/144 Hz | `movementController.js`, `gameConfig.js` |
 
 ---
 
@@ -507,7 +507,7 @@ or give each cat a stable `id` in `placeCats()`.
 | `src/App.css` | Unused CRA starter styles |
 | `src/logo.svg` | Unused React logo |
 | `@react-three/drei` | Installed but never imported |
-| `src/setupTests.js` | No test files exist |
+| `src/setupTests.js` | Jest setup; smoke tests added 2026-11-03 |
 | `node/` | Empty stray folder (`node/maze-three-project/`) |
 | `build/` | Stale generated output; rebuild before deploying |
 | `README.md` | Short; does not mention this `doc/` folder |

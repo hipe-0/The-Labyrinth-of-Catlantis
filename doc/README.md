@@ -40,7 +40,7 @@ run it, and which parts are currently unfinished or broken.
 | Git working tree | Not ready | `Touch-control` is local-only; 3 modified files + untracked touch controls/docs/launcher |
 | Branch state | Not ready | Remote has only `main` and `gh-pages`; local `main` is 1 commit ahead with `32fb27f "shading trial, not working"` |
 | Game code | Playable, needs device testing | Touch movement, movement/rotation timing, jump, wall jitter, cat/exit/win, lighting, floor shadows, and spawn view were fixed on 2026-11-02; the shadow-rendering regression was fixed on 2026-11-03; low-priority items remain in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
-| Tests / CI | Missing | No test files, no CI workflow, no license, no `.nvmrc`/`engines` |
+| Tests / CI | Partial | Jest smoke tests for Enter/Space start and spawn orientation; no CI workflow, no license, no `.nvmrc`/`engines` |
 | Published site | Stale | `gh-pages` and the live site are from 2025-04-01, still titled "React App" |
 
 See [RUNNING.md](RUNNING.md#git-remote-status-verified-2026-11-02) for the verified

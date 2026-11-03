@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-import { generateMaze } from './utils/mazeGeneration';
+import { generateMaze, getStartRotation } from './utils/mazeGeneration';
 import { createMovementController } from './utils/movementController';
 import { CuteCat } from './components/CuteCat';
 import { StarField } from './components/StarField';
@@ -17,16 +17,6 @@ const TOUCH_KEY_MAP = {
   backward: 'ArrowDown',
   left: 'ArrowLeft',
   right: 'ArrowRight',
-};
-
-const getStartRotation = (maze) => {
-  // Face the first open neighbour of the start cell (1, 1). The generator
-  // always carves at least one exit from the start cell.
-  if (maze[1]?.[2] !== 1) return -Math.PI / 2; // east
-  if (maze[2]?.[1] !== 1) return Math.PI;      // south
-  if (maze[1]?.[0] !== 1) return Math.PI / 2;  // west
-  if (maze[0]?.[1] !== 1) return 0;            // north
-  return -Math.PI / 2;
 };
 
 export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) {

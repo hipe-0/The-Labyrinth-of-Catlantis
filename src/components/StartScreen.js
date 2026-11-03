@@ -1,6 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export function StartScreen({ onStart }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.repeat) {
+        return;
+      }
+
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onStart();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onStart]);
+
   return (
     <div style={{
       position: 'absolute',
@@ -59,6 +75,8 @@ export function StartScreen({ onStart }) {
         fontSize: 'clamp(0.8rem, 3vw, 0.9rem)',
         opacity: 0.8
       }}>
+        Press Enter or Space to start
+        <br />
         Use Arrow Keys to Navigate | Space to Jump
       </p>
     </div>

@@ -55,6 +55,16 @@ const clearRoomArea = (maze, startX, startY, roomWidth, roomHeight) => {
   }
 };
 
+export const getStartRotation = (maze) => {
+  // Face the first open neighbour of the start cell (1, 1). The generator
+  // always carves at least one exit from the start cell.
+  if (maze[1]?.[2] !== 1) return -Math.PI / 2; // east
+  if (maze[2]?.[1] !== 1) return Math.PI;      // south
+  if (maze[1]?.[0] !== 1) return Math.PI / 2;  // west
+  if (maze[0]?.[1] !== 1) return 0;            // north
+  return -Math.PI / 2;
+};
+
 export const placeCats = (maze) => {
   const cats = [];
   const catColors = ['white', 'black', 'gray', 'mix'];

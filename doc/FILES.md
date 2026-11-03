@@ -187,12 +187,12 @@ CAT_COLORS = {
 GAME_CONFIG = {
   MAZE_WIDTH: 31,
   MAZE_HEIGHT: 31,
-  MOVE_SPEED: 0.1,          // per-substep movement interpolation
+  MOVE_SPEED: 0.05,         // per-substep movement interpolation
   MOVE_FIXED_STEP: 1 / 144, // fixed movement simulation step (same speed on 60/144 Hz)
   ROTATE_SMOOTHING: 15,     // exponential rotation smoothing rate (1/second)
   MOVE_STRIDE: 0.5,         // world units per attempted step
   ROTATION_ANGLE: Math.PI / 4,
-  ROTATION_STEP_INTERVAL: 0.09, // seconds per 45° step while held (~500°/s)
+  ROTATION_STEP_INTERVAL: 0.18, // seconds per 45° step while held (~250°/s)
   ROTATION_THRESHOLD: 0.01,
   JUMP_VELOCITY: 4,
   GRAVITY: 9.8,
