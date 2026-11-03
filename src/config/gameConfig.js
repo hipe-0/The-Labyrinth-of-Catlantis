@@ -62,18 +62,36 @@ export const GAME_CONFIG = {
     STAR_SIZE: 0.4,
     STAR_RADIUS: 200, // Kept well outside the horizon rings and the moon
     ROTATION_SPEED: 0.025, // Matches the moon's orbit speed
-    TILT_ANGLE: Math.PI / 4
+    TILT_ANGLE: Math.PI / 4,
+    DOME_RADIUS: 400,
+    GLOW_STRENGTH: 0.45,
+    GLOW_POWER: 24,
+    TRANSITION_SPEED: 3,
+    // Index 0 is the initial night sky. Each collected cat moves to the next
+    // palette: blue, green, purple, yellow, rose, teal. The halo is centred on
+    // the moon; the night halo is deliberately faint.
+    GRADIENTS: [
+      { name: 'Night', top: '#000000', mid1: '#000000', mid2: '#000006', horizon: '#050812', glow: '#c9d6ff', glowStrength: 0.3 },
+      { name: 'Blue', top: '#050a24', mid1: '#0d2a5c', mid2: '#2f6fa8', horizon: '#9fd3e6', glow: '#ffd7a8', glowStrength: 0.45 },
+      { name: 'Green', top: '#02120c', mid1: '#0a4029', mid2: '#2f8f5b', horizon: '#a8d98a', glow: '#ffe6a3', glowStrength: 0.45 },
+      { name: 'Purple', top: '#14001f', mid1: '#3b1259', mid2: '#7b3fa0', horizon: '#c77fd1', glow: '#ffc2d4', glowStrength: 0.45 },
+      { name: 'Yellow', top: '#1f1000', mid1: '#6b3a00', mid2: '#c97a00', horizon: '#ffc247', glow: '#fff0b0', glowStrength: 0.5 },
+      { name: 'Rose', top: '#1a020e', mid1: '#5c1235', mid2: '#b03a5b', horizon: '#f28a8a', glow: '#ffe0c2', glowStrength: 0.45 },
+      { name: 'Teal', top: '#001414', mid1: '#064a4a', mid2: '#1e8c8c', horizon: '#8fd6c9', glow: '#f5e6b8', glowStrength: 0.45 },
+    ],
   },
   MOON: {
     ORBIT_SPEED: 0.025, // Kept in sync with SKY.ROTATION_SPEED
     SPIN_SPEED: 0.01,
-    POSITION: [30, 30, 30],
+    // Kept well outside the 70-unit horizon ring so the mountains occlude the
+    // moon when it is low. The size is scaled to preserve its apparent size.
+    POSITION: [90, 90, 90],
     // The moon dips toward the horizon during its tilted orbit. The shadow
     // light is kept at least this high so the floor always catches light and
     // wall shadows stay readable.
     MIN_LIGHT_HEIGHT: 30,
-    SIZE: 5,
-    INNER_SIZE: 4.8,
+    SIZE: 15,
+    INNER_SIZE: 14.4,
     SEGMENTS: 32,
     OUTER_COLOR: "#FFFFFF",
     INNER_COLOR: "#CCCCCC",

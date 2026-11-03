@@ -143,7 +143,7 @@ The core of the game.
 Responsibilities:
 
 1. **Level state** — creates `mazeData` with `generateMaze()`, stores
-   `collectedCats` and `skyColor`.
+   `collectedCats` and `skyIndex`.
 2. **Player ref** — mutable object with position, rotation, jump, and collected set.
    The initial rotation faces the first open neighbour of `(1,1)`.
 3. **Controller** — `useMemo(() => createMovementController(...), [generatedMaze, cats])`.
@@ -156,8 +156,8 @@ Responsibilities:
    20×20 zone, refreshes every frame while walking, at 5 Hz when idle, and immediately
    on a new maze.
 6. **Frame loop** — applies touch input, checks exit, updates movement, syncs camera.
-7. **Scene graph** — background colour, moon-following directional light, Moon,
-   StarField, Floor, ExitBeacon, cats, memoized walls.
+7. **Scene graph** — sky gradient, moon-following directional light, Moon, StarField,
+   Floor, HorizonMountains, ExitBeacon, cats, memoized walls.
 
 Key constants used here: camera eye height `0.5`, directional light intensity `3`,
 follow-player shadow target, 20×20 shadow zone, `2048²` map, wall random scale ranges,
@@ -196,7 +196,8 @@ GAME_CONFIG = {
   SHADOW: { ZONE_HALF_SIZE, MAP_SIZE, IDLE_UPDATE_INTERVAL, MOVE_THRESHOLD },
   HORIZON: { RINGS, INITIAL_POINTS, INITIAL_JITTER, PASSES, AMPLITUDE, ROUGHNESS,
              TOP_BAND_HEIGHT },
-  SKY: { STAR_COUNT, STAR_SIZE, STAR_RADIUS, ROTATION_SPEED, TILT_ANGLE },
+  SKY: { STAR_COUNT, STAR_SIZE, STAR_RADIUS, ROTATION_SPEED, TILT_ANGLE,
+         DOME_RADIUS, GLOW_STRENGTH, GLOW_POWER, TRANSITION_SPEED, GRADIENTS },
   MOON: { ORBIT_SPEED, SPIN_SPEED, POSITION, MIN_LIGHT_HEIGHT, SIZE, INNER_SIZE,
           SEGMENTS, OUTER_COLOR, INNER_COLOR, OUTER_EMISSIVE, INNER_EMISSIVE }
 }
@@ -331,8 +332,10 @@ Three decorative fractal mountain rings centred on the maze:
 
 Two nested emissive spheres:
 
-- Outer: radius 5, white, emissive intensity 0.5.
-- Inner: radius 4.8, light gray, emissive intensity 0.3.
+- Outer: radius 15, white, emissive intensity 0.5.
+- Inner: radius 14.4, light gray, emissive intensity 0.3.
+- The moon sits at `[90, 90, 90]`, well outside the 70-unit horizon ring, so the
+  mountains occlude it when it is low.
 - Wrapped in an orbit group tilted by `SKY.TILT_ANGLE` and rotated on Y over time.
 - The moon itself spins on Y.
 - Receives `lightRef`; every frame copies the moon's world position into the
@@ -340,6 +343,7 @@ Two nested emissive spheres:
   coordinate is clamped to `MOON.MIN_LIGHT_HEIGHT` so the light never drops to the
   horizon and leaves the floor unlit. `MazeScene` then shifts the light with the player
   so the shadow frustum follows without changing the direction.
+- Receives `positionRef`; writes the visual moon position there for `SkyGradient`.
 
 Reads all values from `GAME_CONFIG.MOON`.
 
@@ -350,6 +354,19 @@ Reads all values from `GAME_CONFIG.MOON`.
 - Renders `<points>` with white `pointsMaterial`, size `0.4`, size attenuation.
 - Rotates the field slowly; tilted by `TILT_ANGLE`.
 - Geometry is memoized but never explicitly disposed.
+
+### `src/components/SkyGradient.js`
+
+A 400-unit `BackSide` sphere with a custom shader:
+
+- Blends `topColor`, `mid1Color`, `mid2Color`, and `horizonColor` vertically from the
+  zenith to the horizon.
+- `moonPositionRef` feeds the shader a moon direction; the halo uses
+  `pow(dot(viewDir, moonDir), 24)`, so it is centred on the moon.
+- Seven palettes (night + six cat rewards) are stored in `SKY.GRADIENTS`; colours and
+  glow strength lerp smoothly after each pickup.
+- `depthWrite={false}` and `renderOrder={-1}` keep the sky behind the moon, stars,
+  mountains, and maze.
 
 ---
 

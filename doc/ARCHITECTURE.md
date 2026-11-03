@@ -57,7 +57,7 @@ maze in place.
 | `playerRef` | `MazeScene` | mutable ref | Position, rotation, jump physics, collected set — updated every frame without re-rendering |
 | `mazeData` | `MazeScene` | state | `{ maze, exitX, exitY, cats }` for the current level |
 | `collectedCats` | `MazeScene` | `Set<number>` | Indices of collected cats; drives cat visibility |
-| `skyColor` | `MazeScene` | string | Scene background colour; brightens with cats |
+| `skyIndex` | `MazeScene` | number | Palette index for `SkyGradient`; advances with cats |
 | `movementController` | `MazeScene` | memo | Closure over the current maze/cats with key handlers and the movement update |
 
 ### Why a ref for the player?
@@ -350,16 +350,30 @@ casts shadows, so wall shadows fall across the floor.
 
 ### Moon
 
-- Two emissive spheres: outer radius 5, inner radius 4.8 (slightly smaller, lighter).
-- The moon sits at `[30, 30, 30]` inside an orbit group tilted by `π/4`.
+- Two emissive spheres: outer radius 15, inner radius 14.4 (slightly smaller, lighter).
+- The moon sits at `[90, 90, 90]` inside an orbit group tilted by `π/4`, well outside
+  the 70-unit horizon ring, so the mountains occlude it when it is low.
 - The orbit group rotates around the world origin at `ORBIT_SPEED`; the moon spins on
   its own Y axis at `SPIN_SPEED`.
+- Its world position is also published to `SkyGradient` so the sky halo stays centred
+  on the visible moon.
 
 ### Star field
 
 - 1000 points distributed on a sphere of radius 200, outside the horizon rings.
 - `pointsMaterial`, size 0.4, size attenuation.
 - The whole field is tilted and slowly rotates.
+
+### Sky gradient
+
+- A 400-unit `BackSide` sphere with a custom shader; the camera far plane is 1000.
+- The shader blends four vertical colours from the horizon to the zenith.
+- Seven palettes: a night palette plus blue, green, purple, yellow, rose, and teal for
+  the six cats. The colours lerp smoothly after each pickup.
+- A moon halo is added with `pow(max(dot(viewDir, moonDir), 0), 24)`, so it is always
+  centred on the moon rather than the screen.
+- The sky mesh has `depthWrite={false}` and `renderOrder={-1}` so the moon, stars,
+  mountains, and maze draw in front of it.
 
 ### Exit beacon
 
@@ -372,7 +386,8 @@ casts shadows, so wall shadows fall across the floor.
 
 - A single cool `directionalLight`, intensity `3`, color `#dfe8ff`, casting soft
   shadows (PCFSoft). The shadow zone is a 20×20 world-unit area around the player with a
-  2048² map, giving about 100 shadow texels per world unit.
+  2048² map, giving about 100 shadow texels per world unit. The shadow camera far plane
+  is `400` because the moon now sits roughly 156 units from the maze centre.
 - `Moon.js` sets the light direction from the moon's world position. The height is
   clamped to `MOON.MIN_LIGHT_HEIGHT` (30) so the light stays above the maze even when
   the visible moon dips toward the horizon; otherwise the floor is almost unlit and its
@@ -424,7 +439,7 @@ useFrame(delta)
    ├─ updatePlayerMovement
    │     ├─ collision against maze[][]
    │     ├─ cat hit ──► setCollectedCats ──► re-render (cat hidden)
-   │     └─ sky update ──► setSkyColor ──► scene background
+   │     └─ sky update ──► setSkyIndex ──► SkyGradient palette lerp
    └─ camera.position/rotation = player
 
 React render

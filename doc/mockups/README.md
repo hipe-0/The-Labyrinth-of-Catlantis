@@ -30,6 +30,9 @@ Six top-to-bottom sunset gradients. The first four are the requested families:
 blue, green, purple, yellow. Rose and teal are optional variants for the remaining
 cats. The horizon glow sits at the bottom, behind the maze silhouette.
 
+Implemented in `src/components/SkyGradient.js`. The glow is now a halo centred on the
+moon (not the bottom of the screen), and the palette advances after each cat.
+
 ## Decisions still open
 
 1. Horizon: are the radii and the fractal detail level close enough to build?

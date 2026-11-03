@@ -5,7 +5,7 @@ export const createMovementController = (
   maze, 
   playerRef, 
   setCollectedCats, 
-  setSkyColor, 
+  setSkyIndex, 
   cats
 ) => {
   const {
@@ -115,7 +115,7 @@ export const createMovementController = (
     }
   };
 
-  const updatePlayerMovement = (player, delta, cats, setCollectedCats, setSkyColor) => {
+  const updatePlayerMovement = (player, delta, cats, setCollectedCats, setSkyIndex) => {
     // Clamp very long frames (tab switches, stalls) so physics and rotation do
     // not jump by a large amount at once.
     const frameDelta = Math.min(delta, 0.1);
@@ -151,10 +151,7 @@ export const createMovementController = (
       player.collectedCats = newCollectedCats;
       setCollectedCats(newCollectedCats);
 
-      const lightenPercentage = (newCollectedCats.size / cats.length) * 40;
-      setSkyColor(
-        `hsl(240, ${100 - lightenPercentage}%, ${50 + lightenPercentage / 2}%)`
-      );
+      setSkyIndex(newCollectedCats.size);
     };
 
     const updateMovementTarget = () => {

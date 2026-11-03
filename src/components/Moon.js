@@ -6,7 +6,7 @@ import { GAME_CONFIG } from '../config/gameConfig';
 
 const moonWorldPosition = new THREE.Vector3();
 
-export function Moon({ lightRef }) {
+export function Moon({ lightRef, positionRef }) {
   const moonRef = useRef();
   const orbitRef = useRef();
   const { 
@@ -34,6 +34,12 @@ export function Moon({ lightRef }) {
     }
     if (lightRef?.current && moonRef.current) {
       moonRef.current.getWorldPosition(moonWorldPosition);
+
+      // The sky shader uses the visual moon position for its halo.
+      if (positionRef?.current) {
+        positionRef.current.copy(moonWorldPosition);
+      }
+
       // Keep the light above the maze even when the visual moon is near the
       // horizon; otherwise the floor is left almost unlit and its shadows
       // disappear.

@@ -25,6 +25,7 @@ have now been corrected in the working tree.
 | Shadow quality | The shadow frustum follows the player in a 20×20 zone at 2048², instead of covering the whole maze at low resolution | `MazeScene.js`, `gameConfig.js` |
 | Rotation feel | Held rotation advances continuously and snaps to 45° on release, removing stepwise hiccups | `movementController.js`, `gameConfig.js` |
 | Horizon | Three low fractal mountain rings around the maze, leaving open sky above the horizon | `HorizonMountains.js`, `fractal.js`, `gameConfig.js` |
+| Sky | Shader gradient sky with seven palettes and a halo centred on the moon; moon moved behind the horizon rings | `SkyGradient.js`, `Moon.js`, `gameConfig.js` |
 
 ---
 

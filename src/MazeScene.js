@@ -8,6 +8,7 @@ import { createMovementController } from './utils/movementController';
 import { GAME_CONFIG } from './config/gameConfig';
 import { CuteCat } from './components/CuteCat';
 import { StarField } from './components/StarField';
+import { SkyGradient } from './components/SkyGradient';
 import { Moon } from './components/Moon';
 import { Floor } from './components/Floor';
 import { HorizonMountains } from './components/HorizonMountains';
@@ -29,6 +30,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
   const lastTouchDirectionRef = useRef(null);
   const lastJumpRequestRef = useRef(0);
   const lightRef = useRef();
+  const moonPositionRef = useRef(new THREE.Vector3(30, 30, 30));
   const shadowUpdateTimerRef = useRef(0);
   const lastShadowFocusRef = useRef({ x: 1, z: 1 });
 
@@ -51,14 +53,14 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
   });
 
   const [collectedCats, setCollectedCats] = useState(new Set());
-  const [skyColor, setSkyColor] = useState('#000000');
+  const [skyIndex, setSkyIndex] = useState(0);
 
   const movementController = useMemo(() => {
     return createMovementController(
       generatedMaze,
       playerRef,
       setCollectedCats,
-      setSkyColor,
+      setSkyIndex,
       cats
     );
   }, [generatedMaze, cats]);
@@ -192,12 +194,12 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
       player.collectedCats = new Set();
       
       setCollectedCats(new Set());
-      setSkyColor('#000000');
+      setSkyIndex(0);
       
       return;
     }
 
-    movementController.updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyColor);
+    movementController.updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyIndex);
     
     // Update camera
     camera.position.x = player.x;
@@ -232,7 +234,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
 
   return (
     <>
-      <color attach="background" args={[skyColor]} />
+      <SkyGradient skyIndex={skyIndex} moonPositionRef={moonPositionRef} />
 
       {/* Moon.js sets the moonlight direction; the target follows the player. */}
       <primitive object={lightTarget} />
@@ -246,7 +248,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
         shadow-mapSize-width={SHADOW.MAP_SIZE}
         shadow-mapSize-height={SHADOW.MAP_SIZE}
         shadow-camera-near={1}
-        shadow-camera-far={120}
+        shadow-camera-far={400}
         shadow-camera-left={-SHADOW.ZONE_HALF_SIZE}
         shadow-camera-right={SHADOW.ZONE_HALF_SIZE}
         shadow-camera-top={SHADOW.ZONE_HALF_SIZE}
@@ -255,7 +257,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
         shadow-normalBias={0.02}
       />
 
-      <Moon lightRef={lightRef} />
+      <Moon lightRef={lightRef} positionRef={moonPositionRef} />
       <StarField />
       <Floor />
       <HorizonMountains />
