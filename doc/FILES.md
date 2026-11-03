@@ -182,17 +182,20 @@ CAT_COLORS = {
 GAME_CONFIG = {
   MAZE_WIDTH: 31,
   MAZE_HEIGHT: 31,
+  FLOOR_SIZE: 180,
   MOVE_SPEED: 0.05,         // per-substep movement interpolation
   MOVE_FIXED_STEP: 1 / 144, // fixed movement simulation step (same speed on 60/144 Hz)
   ROTATE_SMOOTHING: 15,     // exponential rotation smoothing rate (1/second)
   MOVE_STRIDE: 0.5,         // world units per attempted step
   ROTATION_ANGLE: Math.PI / 4,
-  ROTATION_STEP_INTERVAL: 0.18, // seconds per 45° step while held (~250°/s)
+  ROTATION_STEP_INTERVAL: 0.18, // derives the continuous hold speed (45°/0.18 s ≈ 250°/s)
   ROTATION_THRESHOLD: 0.01,
   JUMP_VELOCITY: 4,
   GRAVITY: 9.8,
   GRID_REPEL: 0.2,
   SHADOW: { ZONE_HALF_SIZE, MAP_SIZE, IDLE_UPDATE_INTERVAL, MOVE_THRESHOLD },
+  HORIZON: { RINGS, INITIAL_POINTS, INITIAL_JITTER, PASSES, AMPLITUDE, ROUGHNESS,
+             TOP_BAND_HEIGHT },
   SKY: { STAR_COUNT, STAR_SIZE, STAR_RADIUS, ROTATION_SPEED, TILT_ANGLE },
   MOON: { ORBIT_SPEED, SPIN_SPEED, POSITION, MIN_LIGHT_HEIGHT, SIZE, INNER_SIZE,
           SEGMENTS, OUTER_COLOR, INNER_COLOR, OUTER_EMISSIVE, INNER_EMISSIVE }
@@ -223,6 +226,15 @@ never spawn under the player. A level can theoretically have fewer than 6 cats i
 attempt limit is hit, but on a 31 × 31 maze with many floor cells this is effectively
 impossible.
 
+### `src/utils/fractal.js`
+
+Pure fractal-ring generator used by the horizon mountains.
+
+`generateFractalRing({ radius, seed, initialPoints, initialJitter, passes, amplitude,
+roughness })` starts with a few control points around a circle and runs midpoint
+displacement for each pass. It returns `{ angle, radius, x, z }` points in local space,
+centred on the origin. The same seed always produces the same outline.
+
 ### `src/utils/movementController.js`
 
 Factory that closes over the maze, player ref, setters, and cats.
@@ -252,7 +264,7 @@ Full-screen DOM overlay with:
 - Title "The Labyrinth of Catlantis" (white text with pink glow).
 - Subtitle "Find all the lost cats in the mysterious maze".
 - Pink **Start Game** button with hover scale.
-- Controls hint: "Use Arrow Keys to Navigate | Space to Jump".
+- Controls hint: "Press Enter or Space to start" plus arrow-key/jump controls.
 
 Props: `onStart` callback. No Three.js.
 
@@ -300,8 +312,20 @@ Props: `exitX`, `exitY` (numbers).
 
 ### `src/components/Floor.js`
 
-One 100 × 100 plane, rotated flat (`-π/2` on X), at `y = -0.01`, dark gray
-(`#2A2A2A`), standard material. It both receives and casts shadows. No props.
+One 180 × 180 plane, rotated flat (`-π/2` on X), centred on the maze at
+`(15, -0.01, 15)`, dark gray (`#2A2A2A`), standard material. It both receives and
+casts shadows. No props.
+
+### `src/components/HorizonMountains.js`
+
+Three decorative fractal mountain rings centred on the maze:
+
+- Radii `40`, `55`, `70`; heights `7`, `9.5`, `12`.
+- Built from `generateFractalRing` (coarse control points plus 3 midpoint-displacement
+  passes), so each ring has an irregular low-poly outline.
+- Black `meshBasicMaterial` walls with a white top band. The near band is brightest;
+  the far band is dimmest. No lighting, shadows, or collision.
+- Geometry is generated once with `useMemo` and disposed on unmount.
 
 ### `src/components/Moon.js`
 
@@ -322,8 +346,8 @@ Reads all values from `GAME_CONFIG.MOON`.
 ### `src/components/StarField.js`
 
 - Builds a `THREE.BufferGeometry` with `STAR_COUNT` (1000) random points on a sphere of
-  radius `STAR_RADIUS` (50).
-- Renders `<points>` with white `pointsMaterial`, size `0.1`, size attenuation.
+  radius `STAR_RADIUS` (200), outside the horizon rings.
+- Renders `<points>` with white `pointsMaterial`, size `0.4`, size attenuation.
 - Rotates the field slowly; tilted by `TILT_ANGLE`.
 - Geometry is memoized but never explicitly disposed.
 
@@ -345,8 +369,8 @@ Kept as boilerplate.
 
 ### `src/setupTests.js`
 
-Imports `@testing-library/jest-dom` for Jest. Smoke tests cover the Enter/Space start
-keys and spawn orientation.
+Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
+spawn orientation, fractal ring generation, and continuous hold rotation.
 
 ---
 

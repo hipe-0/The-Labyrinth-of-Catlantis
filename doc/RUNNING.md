@@ -172,8 +172,9 @@ folder is from an older build; regenerate it before deploying.
     height is 390, body background is black, and there is no white band
 - Touch input now writes to refs and is applied in `useFrame`; pressing a button does
   not re-render the 3D scene
-- Rotation is time-based at ~250°/s (45° every 0.18 s), so a 144 Hz PC and a 60 Hz phone
-  use the same turn rate
+- Rotation is time-based at ~250°/s while a turn key is held; the target moves
+  continuously and snaps to 45° on release, so a 144 Hz PC and a 60 Hz phone use the
+  same turn rate without stop-start hiccups
 - The directional moonlight follows the moon's world position, clamped to a minimum
   height; the 20×20 shadow zone follows the player and refreshes every frame while
   walking, then at 5 Hz while standing still

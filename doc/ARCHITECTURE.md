@@ -98,7 +98,7 @@ reference to re-render. They are kept in sync in `movementController.js`.
    ├── read keyState (arrow keys)
    ├── attempt forward/backward movement with collision
    ├── collect a cat if the target cell contains one (forward or backward)
-   ├── advance targetRotation by 45° while a turn key is held
+   ├── advance targetRotation continuously while a turn key is held
    └── interpolate x/y toward targetX/targetY
 
 3. camera.position = (player.x, 0.5 + jumpHeight, player.y)
@@ -231,10 +231,12 @@ slightly irregular (e.g. `1 → 1.7 → 2.2 → 2.7 …`).
 
 - Holding left/right sets `keyState`; the first press advances `targetRotation` by one
   45° step immediately.
-- While held, a timer advances `targetRotation` by another `π/4` every
-  `ROTATION_STEP_INTERVAL` (0.18 s), i.e. about **250°/s**. This is time-based, not
-  frame-based, so 60 Hz and 144 Hz devices rotate at the same speed.
-- `normalizeRotation` snaps the target to the nearest multiple of `π/4`.
+- While held, `targetRotation` advances continuously at
+  `ROTATION_ANGLE / ROTATION_STEP_INTERVAL` (45° / 0.18 s ≈ **250°/s**). Continuous
+  target motion avoids the stop-start “hiccups” of stepping the target every 45°. This
+  is time-based, not frame-based, so 60 Hz and 144 Hz devices rotate at the same speed.
+- On release, `normalizeRotation` snaps the target to the nearest multiple of `π/4` so
+  movement stays grid-aligned.
 - `rotation` interpolates toward `targetRotation` using exponential smoothing
   (`1 - exp(-ROTATE_SMOOTHING * delta)`) and snaps when within `ROTATION_THRESHOLD`.
 - Continuous rotation is driven by `keyState`; touch buttons keep the direction held
@@ -332,8 +334,19 @@ For every cell equal to `1`:
 
 ### Floor
 
-A 100 × 100 dark plane rotated flat, at `y = -0.01`, so it sits just under the walls.
-It both receives and casts shadows, so wall shadows fall across the floor.
+A 180 × 180 dark plane rotated flat, centred on the maze at `(15, -0.01, 15)`, so it
+sits just under the walls and extends out to the horizon rings. It both receives and
+casts shadows, so wall shadows fall across the floor.
+
+### Horizon mountains
+
+- Three decorative fractal rings centred on the maze, at radii `40`, `55`, and `70`.
+- Heights are `7`, `9.5`, and `12`, so the silhouettes stay visually close from inside
+  the maze and leave plenty of sky visible above them.
+- Each ring starts from coarse control points and gets 3 midpoint-displacement passes.
+- Black basic-material walls with a white top band; the near band is brightest and the
+  far band dimmest. No lighting, collisions, or shadows.
+- The rings are outside the maze and are purely decorative.
 
 ### Moon
 
@@ -344,8 +357,8 @@ It both receives and casts shadows, so wall shadows fall across the floor.
 
 ### Star field
 
-- 1000 points distributed on a sphere of radius 50.
-- `pointsMaterial`, size 0.1, size attenuation.
+- 1000 points distributed on a sphere of radius 200, outside the horizon rings.
+- `pointsMaterial`, size 0.4, size attenuation.
 - The whole field is tilted and slowly rotates.
 
 ### Exit beacon

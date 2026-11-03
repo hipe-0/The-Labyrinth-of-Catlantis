@@ -10,6 +10,7 @@ import { CuteCat } from './components/CuteCat';
 import { StarField } from './components/StarField';
 import { Moon } from './components/Moon';
 import { Floor } from './components/Floor';
+import { HorizonMountains } from './components/HorizonMountains';
 import { ExitBeacon } from './components/ExitBeacon';
 
 const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
@@ -42,7 +43,6 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
     targetX: 1,
     targetY: 1,
     targetRotation: startRotation,
-    rotationStepTimer: 0,
     movementAccumulator: 0,
     jumpVelocity: 0,
     jumpHeight: 0,
@@ -185,7 +185,6 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
       const nextStartRotation = getStartRotation(newMazeData.maze);
       player.rotation = nextStartRotation;
       player.targetRotation = nextStartRotation;
-      player.rotationStepTimer = 0;
       player.movementAccumulator = 0;
       player.jumpVelocity = 0;
       player.jumpHeight = 0;
@@ -259,6 +258,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
       <Moon lightRef={lightRef} />
       <StarField />
       <Floor />
+      <HorizonMountains />
       <ExitBeacon exitX={exitX} exitY={exitY} />
       {cats.map((cat, index) =>
         collectedCats.has(index) ? null : (

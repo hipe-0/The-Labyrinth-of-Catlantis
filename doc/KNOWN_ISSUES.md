@@ -23,6 +23,8 @@ have now been corrected in the working tree.
 | Shadow rendering | The Canvas enables shadows before the first render, so materials compile with shadow support instead of silently dropping them | `App.js`, `MazeScene.js` |
 | Floor lighting | The shadow-casting moonlight is clamped to a minimum height, so the floor stays lit and wall shadows remain visible while the moon orbits | `Moon.js`, `gameConfig.js` |
 | Shadow quality | The shadow frustum follows the player in a 20×20 zone at 2048², instead of covering the whole maze at low resolution | `MazeScene.js`, `gameConfig.js` |
+| Rotation feel | Held rotation advances continuously and snaps to 45° on release, removing stepwise hiccups | `movementController.js`, `gameConfig.js` |
+| Horizon | Three low fractal mountain rings around the maze, leaving open sky above the horizon | `HorizonMountains.js`, `fractal.js`, `gameConfig.js` |
 
 ---
 
@@ -49,7 +51,7 @@ have now been corrected in the working tree.
 | Movement timing | Fixed 144 Hz substeps; same walking speed on 60/144 Hz displays | `movementController.js`, `gameConfig.js` |
 | Floor shadows | Floor receives and casts shadows | `Floor.js` |
 | Shadow map | 2048² map over a 20×20 zone that follows the player; refreshed every frame while walking and at 5 Hz when idle | `MazeScene.js` |
-| Rotation timing | Time-based 45° steps and exponential smoothing; same ~250°/s at 60/144 Hz | `movementController.js`, `gameConfig.js` |
+| Rotation timing | Continuous ~250°/s hold with a 45° snap on release; same at 60/144 Hz | `movementController.js`, `gameConfig.js` |
 
 ---
 

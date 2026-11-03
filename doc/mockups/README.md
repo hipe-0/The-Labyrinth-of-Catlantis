@@ -4,6 +4,10 @@ Mockups for the next visual pass. They are references, not final assets.
 
 ## `horizon-silhouette.png`
 
+The in-game build was tuned lower and farther out after the first visual check:
+radii `40 / 55 / 70`, heights `7 / 9.5 / 12`, with white top bands. The PNG below is the
+approved review version (closer rings, near-equal heights).
+
 Three concentric low-poly mountain rings around the 31 × 31 maze:
 
 - Ring radii ≈ 26, 36, 46 world units from the maze centre `(15, 15)`.

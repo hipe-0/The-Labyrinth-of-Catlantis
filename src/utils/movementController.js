@@ -20,6 +20,7 @@ export const createMovementController = (
   } = GAME_CONFIG;
 
   const MAX_MOVEMENT_SUBSTEPS = 15;
+  const ROTATION_SPEED = ROTATION_ANGLE / ROTATION_STEP_INTERVAL;
 
   const keyState = {
     ArrowUp: false,
@@ -73,7 +74,6 @@ export const createMovementController = (
           player.targetRotation = normalizeRotation(
             player.targetRotation + ROTATION_ANGLE
           );
-          player.rotationStepTimer = 0;
         }
         break;
       case 'ArrowRight':
@@ -82,7 +82,6 @@ export const createMovementController = (
           player.targetRotation = normalizeRotation(
             player.targetRotation - ROTATION_ANGLE
           );
-          player.rotationStepTimer = 0;
         }
         break;
       case ' ':
@@ -195,25 +194,17 @@ export const createMovementController = (
       }
     };
     
-    // Continuous rotation while a turn key/button is held. Steps are timed in
-    // seconds, not frames, so 60 Hz and 144 Hz devices rotate at the same rate.
-    if (keyState.ArrowLeft || keyState.ArrowRight) {
-      player.rotationStepTimer = (player.rotationStepTimer || 0) + frameDelta;
-      while (player.rotationStepTimer >= ROTATION_STEP_INTERVAL) {
-        player.rotationStepTimer -= ROTATION_STEP_INTERVAL;
-        if (keyState.ArrowLeft) {
-          player.targetRotation = normalizeRotation(
-            player.targetRotation + ROTATION_ANGLE
-          );
-        }
-        if (keyState.ArrowRight) {
-          player.targetRotation = normalizeRotation(
-            player.targetRotation - ROTATION_ANGLE
-          );
-        }
-      }
+    // Continuous rotation while a turn key/button is held. The target advances
+    // at a constant angular speed instead of jumping every 45°, which removes
+    // the visible stop-start "hiccups" at low rotation speeds. On release the
+    // target snaps back to the nearest 45° so movement stays grid-aligned.
+    const turnDirection =
+      (keyState.ArrowLeft ? 1 : 0) - (keyState.ArrowRight ? 1 : 0);
+
+    if (turnDirection !== 0) {
+      player.targetRotation += turnDirection * ROTATION_SPEED * frameDelta;
     } else {
-      player.rotationStepTimer = 0;
+      player.targetRotation = normalizeRotation(player.targetRotation);
     }
 
     // Fixed-timestep movement. 144 Hz matches the original high-refresh PC
