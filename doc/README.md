@@ -127,7 +127,7 @@ The-Labyrinth-of-Catlantis/
 │
 ├── public/                 # static files copied as-is by CRA
 │   ├── index.html          # HTML shell (<div id="root">)
-│   ├── manifest.json       # PWA metadata (still CRA defaults)
+│   ├── manifest.json       # PWA metadata
 │   ├── favicon.ico
 │   ├── logo192.png
 │   ├── logo512.png
@@ -139,10 +139,8 @@ The-Labyrinth-of-Catlantis/
 │   ├── App.js              # start screen ↔ canvas switch, touch state
 │   ├── MazeScene.js        # the game: state, frame loop, scene graph
 │   ├── index.css           # full-screen mobile reset; no scroll/white band
-│   ├── App.css             # unused CRA leftover
-│   ├── logo.svg            # unused CRA leftover
 │   ├── reportWebVitals.js  # CRA performance hook
-│   ├── setupTests.js       # jest-dom setup (no tests exist)
+│   ├── setupTests.js       # jest-dom setup; smoke tests
 │   │
 │   ├── config/
 │   │   └── gameConfig.js   # all tunable constants + cat palettes
@@ -161,7 +159,6 @@ The-Labyrinth-of-Catlantis/
 │       └── StarField.js    # 1000-point star sphere
 │
 ├── build/                  # generated production build (git-ignored)
-├── node/                   # empty stray folder, unused
 └── node_modules/           # installed dependencies (git-ignored)
 ```
 

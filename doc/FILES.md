@@ -54,18 +54,13 @@ package is the simpler cross-platform path.
 ### `.gitignore`
 
 Ignores `/node_modules`, `/build`, `/coverage`, `.pnp`, local env files, and npm/yarn
-debug logs. Note that `node/` is **not** ignored (it is just an empty folder).
+debug logs.
 
 ### `Start Game.bat` (added with this documentation)
 
 Windows launcher. Checks that Node.js is available, installs dependencies if
 `node_modules/react-scripts` is missing, then runs `npm start`. See
 [RUNNING.md](RUNNING.md#launcher).
-
-### `node/`
-
-Empty directory `node/maze-three-project/`. It is not referenced by the app, not
-tracked by Git, and safe to delete. It looks like an accidental nested folder.
 
 ### `build/`
 
@@ -92,13 +87,12 @@ CRA HTML shell:
 
 - `<div id="root"></div>` mount point.
 - Loads `%PUBLIC_URL%/favicon.ico` and `manifest.json`.
-- Title is still `React App`; description is the CRA default.
-- No custom fonts or scripts.
+- Title and description are the game's own; no custom fonts or scripts.
 
 ### `public/manifest.json`
 
-PWA manifest. Still the CRA sample (`short_name: "React App"`,
-`name: "Create React App Sample"`). Only affects installability/branding.
+PWA manifest with the game's name, short name, and black background. Only affects
+installability/branding.
 
 ### `public/404.html`
 
@@ -196,16 +190,12 @@ GAME_CONFIG = {
   ROTATION_THRESHOLD: 0.01,
   JUMP_VELOCITY: 4,
   GRAVITY: 9.8,
-  POSITION_THRESHOLD: 0.01,
-  GRID_PRECISION: 2,
   GRID_REPEL: 0.2,
   SKY: { STAR_COUNT, STAR_SIZE, STAR_RADIUS, ROTATION_SPEED, TILT_ANGLE },
   MOON: { ORBIT_SPEED, SPIN_SPEED, POSITION, MIN_LIGHT_HEIGHT, SIZE, INNER_SIZE,
           SEGMENTS, OUTER_COLOR, INNER_COLOR, OUTER_EMISSIVE, INNER_EMISSIVE }
 }
 ```
-
-`POSITION_THRESHOLD` and `GRID_PRECISION` are currently unused.
 
 ### `src/utils/mazeGeneration.js`
 
@@ -345,15 +335,6 @@ background and `overflow: hidden`; `body` is fixed to the viewport and disables
 overscroll/touch gestures. This prevents landscape scrolling and white bands. Also
 contains the system font stack and font smoothing.
 
-### `src/App.css`
-
-Unused CRA starter styles (`.App`, `.App-logo`, spin animation, etc.). Nothing imports
-it.
-
-### `src/logo.svg`
-
-Unused CRA React logo. Nothing imports it.
-
 ### `src/reportWebVitals.js`
 
 CRA performance helper. `index.js` calls it without a callback, so it does nothing.
@@ -361,8 +342,8 @@ Kept as boilerplate.
 
 ### `src/setupTests.js`
 
-Imports `@testing-library/jest-dom` for Jest. There are no test files in the repo, so
-`npm test` only starts watch mode and finds nothing.
+Imports `@testing-library/jest-dom` for Jest. Smoke tests cover the Enter/Space start
+keys and spawn orientation.
 
 ---
 

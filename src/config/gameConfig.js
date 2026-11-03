@@ -27,8 +27,6 @@ export const GAME_CONFIG = {
   GRAVITY: 9.8,        // Increased from 0.5 for more realistic gravity
   
   // Collision and Movement
-  POSITION_THRESHOLD: 0.01, // Precision for position alignment
-  GRID_PRECISION: 2, // Number of decimal places for grid alignment
   GRID_REPEL: 0.2,  // Controls how far from grid lines the player is kept
   
   // Sky and lighting

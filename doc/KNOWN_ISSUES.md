@@ -71,7 +71,7 @@ have now been corrected in the working tree.
 | 13 | Open | Low | `receiveShadow` props are ignored by cat/beacon components | `CuteCat.js`, `ExitBeacon.js` |
 | 14 | Fixed | Low | `physicallyCorrectLights` is a no-op in Three.js r174 | `MazeScene.js` |
 | 15 | Fixed | Low | React keys use filtered array indices | `MazeScene.js` |
-| 16 | Open | Low | CRA branding leftovers, unused files, no tests | various |
+| 16 | Partly fixed | Low | CRA branding and unused files removed, smoke tests added; `deploy.sh` and CI/license remain | various |
 | 17 | Intentional | — | Holding a turn button rotates continuously; this is the intended 2025 behavior | `movementController.js` |
 | 18 | Fixed | Medium | Scene could be nearly black and spawn could face a blank wall | `MazeScene.js` |
 | 19 | Fixed | High | Landscape could scroll and expose a white band | `index.css`, `App.js` |
@@ -502,23 +502,23 @@ or give each cat a stable `id` in `placeCats()`.
 
 | Item | Note |
 | --- | --- |
-| `public/index.html` | `<title>React App</title>`, CRA description |
-| `public/manifest.json` | `"React App"` / `"Create React App Sample"` |
-| `src/App.css` | Unused CRA starter styles |
-| `src/logo.svg` | Unused React logo |
+| `public/index.html` | Fixed: game title and description |
+| `public/manifest.json` | Fixed: game name and black background |
+| `src/App.css` | Removed (unused CRA styles) |
+| `src/logo.svg` | Removed (unused React logo) |
 | `@react-three/drei` | Installed but never imported |
-| `src/setupTests.js` | Jest setup; smoke tests added 2026-11-03 |
-| `node/` | Empty stray folder (`node/maze-three-project/`) |
+| `src/setupTests.js` | Fixed: smoke tests added 2026-11-03 |
+| `node/` | Removed (empty stray folder) |
 | `build/` | Stale generated output; rebuild before deploying |
 | `README.md` | Short; does not mention this `doc/` folder |
 | `deploy.sh` | Force-pushes local `main` to `gh-pages`; if you are on another branch, it may deploy stale code |
 
 **Fix**
 
-- Set a real title/description/manifest.
-- Delete `App.css`, `logo.svg`, and the empty `node/` folder.
+- ~~Set a real title/description/manifest.~~ Done.
+- ~~Delete `App.css`, `logo.svg`, and the empty `node/` folder.~~ Done.
 - Remove `@react-three/drei` from `package.json` if you do not plan to use it.
-- Add at least a smoke test (render `<App />`, click Start, assert canvas exists).
+- ~~Add at least a smoke test.~~ Done: start keys and spawn orientation.
 - Prefer `npm run deploy` (builds the current tree) over `deploy.sh`.
 
 ---

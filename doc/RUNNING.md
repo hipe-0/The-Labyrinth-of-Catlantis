@@ -180,7 +180,7 @@ folder is from an older build; regenerate it before deploying.
   90, 120, 144, and 240 Hz
 - Floor receives and casts shadows; the shadow map is `2048²`
 - Wall scale variations were verified stable across touch-triggered re-renders
-- `build/` and `node_modules/` are generated/ignored; `node/` is an empty stray folder
+- `build/` and `node_modules/` are generated/ignored
 
 ### Git remote status (verified 2026-11-02)
 
