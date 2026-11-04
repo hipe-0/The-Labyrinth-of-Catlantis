@@ -125,11 +125,15 @@ React entry point.
 
 Top-level UI and mode switch.
 
-- State: `isGameStarted`, `hasTouch`; refs: `touchDirectionRef`, `jumpRequestRef`.
-- Renders `<StartScreen onStart={...}>` until the game starts.
+- State: `isGameStarted`, `hasTouch`; refs: `touchDirectionRef`, `jumpRequestRef`,
+  `audioRef`.
+- Renders `<StartScreen onStart={...}>` until the game starts. Starting (button,
+  Enter, or Space) creates/resumes the procedural audio engine and plays the start
+  chime.
 - After start, renders a full-screen `<Canvas>` (75° FOV, near 0.1, far 1000, initial
   camera `[1, 0.5, 1]`, antialias, DPR capped at 1.5) containing `<MazeScene>`.
-- Passes `touchDirectionRef` and `jumpRequestRef` down to `MazeScene`.
+- Passes `touchDirectionRef`, `jumpRequestRef`, and the audio engine down to
+  `MazeScene`.
 - Shows `<TouchControls>` once `hasTouch` is true.
 - `handleTouchMove(direction)` writes the ref; `handleTouchJump()` increments the jump
   ref. Neither causes a 3D re-render.
@@ -144,9 +148,11 @@ Responsibilities:
 
 1. **Level state** — creates `mazeData` with `generateMaze()`, stores
    `collectedCats` and `skyIndex`.
-2. **Player ref** — mutable object with position, rotation, jump, and collected set.
-   The initial rotation faces the first open neighbour of `(1,1)`.
-3. **Controller** — `useMemo(() => createMovementController(...), [generatedMaze, cats])`.
+2. **Player ref** — mutable circle with position, rotation, movement accumulator,
+   jump, and collected set. The initial rotation faces the first open neighbour of
+   `(1,1)`.
+3. **Controller** — `useMemo(() => createMovementController(...), [generatedMaze, cats,
+   audio])`, with a cat callback that plays the meow.
 4. **Input** — registers `keydown`/`keyup` on `document` while the game is started;
    reads `touchDirectionRef` and `jumpRequestRef` in `useFrame` and maps them to arrow
    keys / Space. Touch input does not re-render the 3D scene.
@@ -155,13 +161,14 @@ Responsibilities:
    sets ACES tone mapping and sRGB output. The shadow frustum follows the player in a
    20×20 zone, refreshes every frame while walking, at 5 Hz when idle, and immediately
    on a new maze.
-6. **Frame loop** — applies touch input, checks exit, updates movement, syncs camera.
+6. **Frame loop** — applies touch input, checks exit, updates circle movement and
+   collision, updates audio, and moves the smoothed camera.
 7. **Scene graph** — sky gradient, moon-following directional light, Moon, StarField,
    Floor, HorizonMountains, ExitBeacon, cats, memoized walls.
 
 Key constants used here: camera eye height `0.5`, directional light intensity `3`,
 follow-player shadow target, 20×20 shadow zone, `2048²` map, wall random scale ranges,
-exit beacon position.
+exit beacon position, exit reach radius, and camera follow lag.
 
 Known quirks: wall scales are memoized per maze and stable; cats are wrapped in
 positioned groups with their palette; `ExitBeacon` receives `exitX`/`exitY` correctly.
@@ -183,16 +190,16 @@ GAME_CONFIG = {
   MAZE_WIDTH: 31,
   MAZE_HEIGHT: 31,
   FLOOR_SIZE: 180,
-  MOVE_SPEED: 0.05,         // per-substep movement interpolation
   MOVE_FIXED_STEP: 1 / 144, // fixed movement simulation step (same speed on 60/144 Hz)
   ROTATE_SMOOTHING: 15,     // exponential rotation smoothing rate (1/second)
-  MOVE_STRIDE: 0.5,         // world units per attempted step
   ROTATION_ANGLE: Math.PI / 4,
   ROTATION_STEP_INTERVAL: 0.18, // derives the continuous hold speed (45°/0.18 s ≈ 250°/s)
   ROTATION_THRESHOLD: 0.01,
   JUMP_VELOCITY: 4,
   GRAVITY: 9.8,
-  GRID_REPEL: 0.2,
+  PLAYER: { RADIUS, WALK_SPEED, CAT_PICKUP_RADIUS, EXIT_REACH_RADIUS },
+  CAMERA: { FOLLOW_SMOOTHING, MAX_LAG },
+  AUDIO: { MASTER_VOLUME, WIND_MAX_VOLUME, FOOTSTEP_VOLUME, BEACON_INTERVAL },
   SHADOW: { ZONE_HALF_SIZE, MAP_SIZE, IDLE_UPDATE_INTERVAL, MOVE_THRESHOLD },
   HORIZON: { RINGS, INITIAL_POINTS, INITIAL_JITTER, PASSES, AMPLITUDE, ROUGHNESS,
              TOP_BAND_HEIGHT },
@@ -236,9 +243,41 @@ roughness })` starts with a few control points around a circle and runs midpoint
 displacement for each pass. It returns `{ angle, radius, x, z }` points in local space,
 centred on the origin. The same seed always produces the same outline.
 
+### `src/utils/collision.js`
+
+Pure 2D circle-vs-AABB collision used by the movement controller.
+
+- `circleIntersectsBox(x, z, radius, box)` — closest-point circle/box test.
+- `createCollisionWorld()` — spatial hash of axis-aligned boxes with
+  `addBox`, `overlapsCircle`, `overlappingBoxes`, and `resolvePenetration`.
+- `moveCircle(world, x, z, dx, dz, radius)` — subdivides displacement, resolves X then
+  Z (or Z then X), rejects axes that would overlap a box, and returns the final
+  position. The remaining axis slides along the wall.
+- `createMazeCollisionWorld(maze)` — registers every `1` cell as a 1×1 box and adds four
+  outer fence boxes so the player cannot leave the maze.
+
+The spatial hash keeps lookups local, so additional props can add boxes without
+scanning the whole maze.
+
+### `src/utils/audioEngine.js`
+
+Procedural Web Audio engine. `GAME_CONFIG.AUDIO` holds the master/footstep/wind levels
+and the beacon interval.
+
+- `start()` — creates/resumes the context on the Start gesture and plays a rising chime.
+- `meow()` — pitch-bent sawtooth through a band-pass formant.
+- `levelComplete()` — four-note arpeggio.
+- `update({ moving, speed, x, z, rotation, exitX, exitY }, delta)` — speed-dependent
+  wind, alternating footsteps timed by actual travel distance, and a periodic beacon
+  ping panned toward the exit.
+- `dispose()` — closes the context when the app unmounts.
+
+If `window.AudioContext` is unavailable, every method is a safe no-op.
+
 ### `src/utils/movementController.js`
 
-Factory that closes over the maze, player ref, setters, and cats.
+Factory that closes over the maze, player ref, setters, cats, and an optional
+`onCatCollected` callback.
 
 Exports `createMovementController`. Returned object:
 
@@ -246,14 +285,14 @@ Exports `createMovementController`. Returned object:
 | --- | --- |
 | `handleKeyDown(event)` | Arrow up/down set movement state; left/right start continuous rotation while held; space starts a jump |
 | `handleKeyUp(event)` | Clears movement/rotation state |
-| `updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyColor)` | Jump physics, fixed-step movement, collision, cat pickup, continuous rotation, interpolation |
+| `updatePlayerMovement(player, delta)` | Jump physics, fixed-step circle movement, wall sliding, cat pickup, continuous rotation |
 | `keyState` | Raw arrow-key booleans (exposed for debugging) |
 
 Internal helpers:
 
-- `checkCollision(x, z)` — rounds to grid, returns true if the cell is not `1`.
 - `normalizeRotation(rotation)` — snap to 45° multiples.
-- `avoidGridLines(value)` — repel from fractional `0.5` boundaries.
+- `movePlayer(player)` — moves the circle with `moveCircle` and checks cat proximity.
+- `collectCatNear(x, z)` — collects a cat within `PLAYER.CAT_PICKUP_RADIUS`.
 
 This file contains the movement model described in
 [ARCHITECTURE.md](ARCHITECTURE.md#6-movement-model).
@@ -387,7 +426,8 @@ Kept as boilerplate.
 ### `src/setupTests.js`
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
-spawn orientation, fractal ring generation, and continuous hold rotation.
+spawn orientation, fractal ring generation, continuous hold rotation, circle collision
+and wall sliding, cat pickup, and the silent audio fallback.
 
 ---
 
@@ -413,14 +453,19 @@ index.js
 ├── App.js
 │   ├── components/StartScreen.js
 │   ├── components/TouchControls.js
+│   ├── utils/audioEngine.js
+│   │   └── config/gameConfig.js
 │   └── MazeScene.js
 │       ├── utils/mazeGeneration.js
 │       │   └── config/gameConfig.js
 │       ├── utils/movementController.js
+│       │   ├── utils/collision.js
 │       │   └── config/gameConfig.js
 │       ├── components/CuteCat.js
 │       │   └── config/gameConfig.js
 │       ├── components/StarField.js
+│       │   └── config/gameConfig.js
+│       ├── components/SkyGradient.js
 │       │   └── config/gameConfig.js
 │       ├── components/Moon.js
 │       │   └── config/gameConfig.js

@@ -1,18 +1,30 @@
 # Known Issues and Rough Edges
 
-These notes describe the current working tree (`Touch-control` branch, with
-uncommitted changes). The high/medium issues from the original touch refactor were
-fixed on **2026-11-02**, and the shadow-rendering regression was fixed on
-**2026-11-03**; the remaining open items are marked in the summary table.
-The detailed sections are kept as a record of the original analysis.
+These notes describe the current working tree (`Touch-control` branch). The high/medium
+issues from the original touch refactor were fixed on **2026-11-02**, the
+shadow-rendering regression was fixed on **2026-11-03**, and circle collision plus
+procedural audio landed on **2026-11-04**; the remaining open items are marked in the
+summary table. The detailed sections are kept as a record of the original analysis.
 
-The uncommitted touch-control refactor was incomplete: several things that worked in
+The 2025 touch-control refactor was incomplete: several things that worked in
 the last commit (`258f564`) were broken while moving props around. Those regressions
 have now been corrected in the working tree.
 
 > Verified 2026-11-02: `origin/main` at `258f564` still has the correct cat wrapper,
 > `ExitBeacon` props, and rounded exit check. The live site is built from the
 > `gh-pages` branch at `1f41a2c`, which is based on the same `main` baseline.
+
+---
+
+## Fixes applied on 2026-11-04
+
+| Area | Change | File |
+| --- | --- | --- |
+| Collision | The player is a 2D circle tested against wall AABBs in a spatial hash; movement is axis-separated so the circle slides along walls and can never overlap one | `collision.js`, `movementController.js`, `gameConfig.js` |
+| Camera | Camera follows the circle centre with clamped exponential smoothing, keeping it inside the collision radius | `MazeScene.js`, `gameConfig.js` |
+| Cat pickup | Proximity-based pickup instead of rounded destination-cell equality; works while forward or backward | `movementController.js` |
+| Exit | Distance-based exit check (`EXIT_REACH_RADIUS = 0.5`) instead of grid rounding | `MazeScene.js` |
+| Audio | Procedural footsteps, speed-dependent wind, directional beacon ping, cat meow, start chime, and level-complete arpeggio | `audioEngine.js`, `App.js`, `MazeScene.js` |
 
 ---
 
@@ -71,8 +83,8 @@ have now been corrected in the working tree.
 | 9 | Fixed | Low | Moon orbits but the directional moonlight stayed fixed | `Moon.js`, `MazeScene.js` |
 | 10 | Fixed | Low | Movement interpolation was frame-rate dependent | `movementController.js` |
 | 11 | Fixed | Low | Backward movement could not collect cats | `movementController.js` |
-| 12 | Open | Low | Collision only checks the destination cell; corner clipping is possible | `movementController.js` |
-| 13 | Open | Low | `receiveShadow` props are ignored by cat/beacon components | `CuteCat.js`, `ExitBeacon.js` |
+| 12 | Fixed | Low | Collision only checks the destination cell; corner clipping is possible | `movementController.js`, `collision.js` |
+| 13 | Moot | Low | `receiveShadow` props are ignored by cat/beacon components | `CuteCat.js`, `ExitBeacon.js` |
 | 14 | Fixed | Low | `physicallyCorrectLights` is a no-op in Three.js r174 | `MazeScene.js` |
 | 15 | Fixed | Low | React keys use filtered array indices | `MazeScene.js` |
 | 16 | Partly fixed | Low | CRA branding and unused files removed, smoke tests added; `deploy.sh` and CI/license remain | various |
@@ -414,38 +426,25 @@ movement (or after any successful position update).
 
 ## 12. Collision can clip wall corners
 
-**Severity: low**
+**Severity: low — fixed 2026-11-04**
 
-`checkCollision` only checks the rounded destination cell:
+The old controller only checked the rounded destination cell, so a diagonal step could
+pass through a wall corner.
 
-```js
-return maze[Math.round(gridZ)] &&
-       maze[Math.round(gridZ)][Math.round(gridX)] !== 1;
-```
-
-There is no check of the intermediate cell or the player's radius. A diagonal step can
-pass through a wall corner. In practice the 45° movement and half-cell stride make this
-rare, but it is possible.
-
-**Fix**
-
-Check both the X and Z grid cells crossed during the step, or use a small radius and
-test the four neighbouring cells.
+Collision is now a 2D circle (radius 0.2) tested against wall AABBs registered in a
+spatial hash. Movement is subdivided and resolved one axis at a time, so the circle
+slides along walls, cannot overlap one, and cannot tunnel through corners. See
+`src/utils/collision.js` and the tests in `collision.test.js`.
 
 ---
 
 ## 13. `receiveShadow` is ignored
 
-**Severity: low**
+**Severity: low — moot**
 
-`MazeScene.js` passes `receiveShadow` to `<CuteCat>` and `<ExitBeacon>`, but neither
-component forwards unknown props to its meshes. Shadows may still be cast onto the
-floor, but the cats/beacon will not receive shadows themselves.
-
-**Fix**
-
-Forward props (`...props`) to the root group/mesh, or explicitly set
-`receiveShadow` on the meshes.
+`MazeScene.js` no longer passes `receiveShadow` to `<CuteCat>` or `<ExitBeacon>`, so the
+components are not relying on a prop they ignore. The cat and beacon meshes do not
+receive shadows explicitly; add it directly if that becomes visible.
 
 ---
 
@@ -533,10 +532,10 @@ These look odd but are part of the design:
 
 - **No visible player model** — the camera is the player; this is a first-person game.
 - **45° rotation steps** — arrow left/right rotate in eighth-turns, not free-look.
-- **Half-cell stride** — movement is continuous and collision is grid-rounded; the
-  `avoidGridLines` repel is meant to keep the player off cell boundaries.
-- **Sky starts black** — the first cat produces a visible blue jump; this is the
-  intended reward feedback.
+- **Free movement inside cells** — the player is a circle, not a grid token, so it can
+  stand anywhere in a walkable cell as long as it does not overlap a wall.
+- **Sky starts black** — the first cat starts the gradient, which is the intended
+  reward feedback.
 - **Rooms can create loops** — the recursive backtracker produces a perfect maze, then
   `createRooms` deliberately opens areas.
 - **Cats can spawn near the start** — there is no minimum distance from `(1,1)`.
@@ -544,16 +543,7 @@ These look odd but are part of the design:
 
 ---
 
-## Suggested fix order
+## Next work
 
-If you want to make the current branch playable again with minimal changes:
-
-1. Fix `ExitBeacon` props (`exitX`/`exitY`).
-2. Restore the positioned `<group>` wrapper for cats and pass `color`.
-3. Round coordinates in `checkExit` (or use a distance threshold).
-4. Map touch directions to arrow keys.
-5. Wire the Jump button.
-6. Move wall randomisation into `useMemo`.
-7. Then polish: moon light, frame-rate-independent movement, keys, branding.
-
-All of these are small, isolated changes. None require restructuring the architecture.
+The remaining feature requests are tracked in [TODO.md](TODO.md). The old "fix order"
+list is obsolete: the regressions it described are fixed.

@@ -23,9 +23,9 @@ const TOUCH_KEY_MAP = {
 };
 
 const MAZE_CENTER = (GAME_CONFIG.MAZE_WIDTH - 1) / 2;
-const { SHADOW } = GAME_CONFIG;
+const { SHADOW, PLAYER, CAMERA } = GAME_CONFIG;
 
-export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) {
+export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef, audio }) {
   const { camera, gl } = useThree();
   const lastTouchDirectionRef = useRef(null);
   const lastJumpRequestRef = useRef(0);
@@ -33,6 +33,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
   const moonPositionRef = useRef(new THREE.Vector3(30, 30, 30));
   const shadowUpdateTimerRef = useRef(0);
   const lastShadowFocusRef = useRef({ x: 1, z: 1 });
+  const cameraFollowRef = useRef({ x: 1, z: 1 });
 
   const [mazeData, setMazeData] = useState(() => generateMaze());
   const { maze: generatedMaze, exitX, exitY, cats } = mazeData;
@@ -42,8 +43,6 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
     x: 1,
     y: 1,
     rotation: startRotation,
-    targetX: 1,
-    targetY: 1,
     targetRotation: startRotation,
     movementAccumulator: 0,
     jumpVelocity: 0,
@@ -61,9 +60,10 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
       playerRef,
       setCollectedCats,
       setSkyIndex,
-      cats
+      cats,
+      () => audio?.meow()
     );
-  }, [generatedMaze, cats]);
+  }, [generatedMaze, cats, audio]);
 
   // Wall height/width variations must stay fixed for a given maze. Computing
   // Math.random() during render makes every touch press re-roll the walls.
@@ -115,8 +115,10 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
 
   const checkExit = useCallback(() => {
     const player = playerRef.current;
-    return Math.round(player.x) === exitX &&
-           Math.round(player.y) === exitY &&
+    const dx = player.x - exitX;
+    const dz = player.y - exitY;
+
+    return dx * dx + dz * dz <= PLAYER.EXIT_REACH_RADIUS * PLAYER.EXIT_REACH_RADIUS &&
            player.collectedCats.size === cats.length;
   }, [exitX, exitY, cats.length]);
 
@@ -182,8 +184,6 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
       
       player.x = 1;
       player.y = 1;
-      player.targetX = 1;
-      player.targetY = 1;
       const nextStartRotation = getStartRotation(newMazeData.maze);
       player.rotation = nextStartRotation;
       player.targetRotation = nextStartRotation;
@@ -195,15 +195,55 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef }) 
       
       setCollectedCats(new Set());
       setSkyIndex(0);
+      audio?.levelComplete();
+
+      // Snap the camera to the new spawn so there is no interpolation streak
+      // across the maze on the first frame of the next level.
+      cameraFollowRef.current = { x: 1, z: 1 };
+      camera.position.set(1, 0.5, 1);
+      camera.rotation.set(0, nextStartRotation, 0);
       
       return;
     }
 
+    const previousX = player.x;
+    const previousZ = player.y;
     movementController.updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyIndex);
-    
-    // Update camera
-    camera.position.x = player.x;
-    camera.position.z = player.y;
+
+    // Sound follows the distance the circle actually travelled: walking into a
+    // wall produces no footsteps and no wind.
+    const travelled = Math.hypot(player.x - previousX, player.y - previousZ);
+    const speed = delta > 0 ? travelled / delta : 0;
+
+    audio?.update({
+      moving: travelled > 1e-5,
+      speed,
+      x: player.x,
+      z: player.y,
+      rotation: player.rotation,
+      exitX,
+      exitY,
+    }, delta);
+
+    // The camera follows the collision circle with a short, clamped delay.
+    const follow = cameraFollowRef.current;
+    const followBlend = 1 - Math.exp(-CAMERA.FOLLOW_SMOOTHING * delta);
+
+    follow.x += (player.x - follow.x) * followBlend;
+    follow.z += (player.y - follow.z) * followBlend;
+
+    const lagX = follow.x - player.x;
+    const lagZ = follow.z - player.y;
+    const lag = Math.hypot(lagX, lagZ);
+
+    if (lag > CAMERA.MAX_LAG) {
+      const scale = CAMERA.MAX_LAG / lag;
+      follow.x = player.x + lagX * scale;
+      follow.z = player.y + lagZ * scale;
+    }
+
+    camera.position.x = follow.x;
+    camera.position.z = follow.z;
     camera.position.y = 0.5 + player.jumpHeight;
     camera.rotation.set(0, player.rotation, 0);
 

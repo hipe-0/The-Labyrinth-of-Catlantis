@@ -14,19 +14,16 @@ run it, and which parts are currently unfinished or broken.
 | --- | --- |
 | Project name | `maze-three-project` |
 | Live demo | <https://hipe-0.github.io/The-Labyrinth-of-Catlantis/> |
-| Last commit | `258f564` — 2025-04-01 |
-| Current branch | `Touch-control` — **local only, not on GitHub** |
-| Remote branches | `main` (`258f564`), `gh-pages` (`1f41a2c`) — no `Touch-control` |
-| Uncommitted work | `src/App.js`, `src/MazeScene.js` modified; `src/components/TouchControls.js`, `doc/`, `Start Game.bat` new |
+| Latest work | 2026-11-04 — circle collision, procedural audio, TODO refresh |
+| Current branch | `Touch-control` — local branch |
 | Main stack | React 19, Create React App 5, Three.js 0.174, React Three Fiber 9 |
 | Entry point | `src/index.js` → `src/App.js` → `src/MazeScene.js` |
 | Maze size | 31 × 31 cells |
 | Cats per level | 6 |
-| Controls | Arrow keys to move/turn, Space to jump |
+| Controls | Arrow keys to move/turn, Space to jump; touch D-pad + Jump |
 
-> The touch-control work is still uncommitted on a local branch. The regressions it
-> introduced were fixed on 2026-11-02; see [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for the
-> current status and the remaining low-priority items.
+> The remaining feature requests are tracked in [TODO.md](TODO.md). Low-priority
+> engine notes are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ---
 
@@ -37,11 +34,10 @@ run it, and which parts are currently unfinished or broken.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local toolchain | Ready | Node 24.18 / npm 11.16 installed, dependencies resolve, `npm start` compiles and serves HTTP 200, `npm run build` succeeds |
-| Git working tree | Not ready | `Touch-control` is local-only; 3 modified files + untracked touch controls/docs/launcher |
-| Branch state | Not ready | Remote has only `main` and `gh-pages`; local `main` is 1 commit ahead with `32fb27f "shading trial, not working"` |
-| Game code | Playable, needs device testing | Touch movement, movement/rotation timing, jump, wall jitter, cat/exit/win, lighting, floor shadows, and spawn view were fixed on 2026-11-02; shadow rendering, a follow-player shadow zone, smooth held rotation, horizon mountains, and the shader sky with a moon-centred halo were added on 2026-11-03; low-priority items remain in [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
-| Tests / CI | Partial | Jest smoke tests for Enter/Space start and spawn orientation; no CI workflow, no license, no `.nvmrc`/`engines` |
-| Published site | Stale | `gh-pages` and the live site are from 2025-04-01, still titled "React App" |
+| Git working tree | Ready | Work is committed on `Touch-control`; branch still needs an upstream/push |
+| Game code | Playable, needs device testing | Touch input, timing, cats/exit, lighting, shadows, horizon, sky, circle collision, and procedural audio are implemented; remaining feature work is in [TODO.md](TODO.md) |
+| Tests / CI | Partial | Jest tests for start keys, spawn orientation, fractal rings, rotation, circle collision/sliding, cat pickup, and the audio fallback; no CI workflow or license |
+| Published site | Stale | `gh-pages` and the live site predate the recent work |
 
 See [RUNNING.md](RUNNING.md#git-remote-status-verified-2026-11-02) for the verified
 remote/branch table.
@@ -49,11 +45,9 @@ remote/branch table.
 Before treating the folder as a clean hand-off:
 
 1. Test the touch fixes on a real phone (movement, turning, jump, bottom controls).
-2. Commit the touch work on `Touch-control` and push it with an upstream.
-3. Decide what to do with the unpushed `main` experiment (`32fb27f`); do not push it
-   as-is.
-4. Add at least one smoke test and a CI workflow.
-5. Rebuild and redeploy `gh-pages` after the fixes.
+2. Push `Touch-control` with an upstream.
+3. Add a CI workflow and finish the remaining [TODO.md](TODO.md) items.
+4. Rebuild and redeploy `gh-pages` after the fixes.
 
 ---
 
@@ -99,11 +93,11 @@ Pages `homepage`, CRA serves the app under
 | ↑ / ↓ | Walk forward / backward along the current facing |
 | ← / → | Turn 45° left / right |
 | Space | Jump |
-| Touch controls | Intended for mobile, currently not wired correctly |
+| Touch controls | D-pad + Jump button after the first touch |
 
-Goal: collect all 6 cats, then step onto the exit beacon in the far corner.
-Collecting cats changes the sky colour from black toward light blue. Reaching the exit
-with all 6 cats generates a brand-new maze.
+Goal: collect all 6 cats, then reach the exit beacon in the far corner. Collecting cats
+advances a smooth gradient sky palette (blue, green, purple, yellow, rose, teal).
+Reaching the exit with all 6 cats generates a brand-new maze.
 
 ---
 
@@ -123,6 +117,8 @@ The-Labyrinth-of-Catlantis/
 │   ├── ARCHITECTURE.md     # runtime flow, algorithms, coordinate system
 │   ├── FILES.md            # file-by-file reference
 │   ├── RUNNING.md          # install, build, deploy, troubleshooting
+│   ├── TODO.md             # feature backlog and completion status
+│   ├── mockups/            # horizon and sky visual proposals
 │   └── KNOWN_ISSUES.md     # bugs and rough edges in the current tree
 │
 ├── public/                 # static files copied as-is by CRA
@@ -146,6 +142,8 @@ The-Labyrinth-of-Catlantis/
 │   │   └── gameConfig.js   # all tunable constants + cat palettes
 │   │
 │   ├── utils/
+│   │   ├── audioEngine.js        # procedural start/step/wind/beacon/meow sounds
+│   │   ├── collision.js         # circle-vs-AABB collision + wall sliding
 │   │   ├── fractal.js           # fractal mountain-ring generator
 │   │   ├── mazeGeneration.js    # maze carving, rooms, cat placement
 │   │   └── movementController.js# keyboard, collision, rotation, jump
@@ -172,12 +170,14 @@ The-Labyrinth-of-Catlantis/
 | Question | File |
 | --- | --- |
 | How is the maze generated? | `src/utils/mazeGeneration.js` |
-| How does movement/collision work? | `src/utils/movementController.js` |
+| How does movement/collision work? | `src/utils/movementController.js`, `src/utils/collision.js` |
+| How do sounds work? | `src/utils/audioEngine.js` |
 | How is the scene assembled? | `src/MazeScene.js` |
 | How do I tune speed, jump, sky, moon? | `src/config/gameConfig.js` |
 | How does the start screen work? | `src/App.js`, `src/components/StartScreen.js` |
 | How are cats drawn? | `src/components/CuteCat.js` |
 | How is the app built/deployed? | `package.json`, `deploy.sh`, [RUNNING.md](RUNNING.md) |
+| What is next? | [TODO.md](TODO.md) |
 | What is currently broken? | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 
 ---
@@ -188,5 +188,6 @@ The-Labyrinth-of-Catlantis/
    math, coordinate system, rendering.
 2. [FILES.md](FILES.md) — file-by-file reference with exports and responsibilities.
 3. [RUNNING.md](RUNNING.md) — install, launcher, scripts, build, deploy, troubleshooting.
-4. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — bugs, regressions, and rough edges found in the
+4. [TODO.md](TODO.md) — completed features and the remaining backlog.
+5. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — bugs, regressions, and rough edges found in the
    current working tree, with suggested fixes.

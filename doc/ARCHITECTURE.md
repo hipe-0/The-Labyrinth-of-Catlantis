@@ -34,7 +34,9 @@ only returns Three.js objects through R3F.
 1. `src/index.js` creates the React root on `#root` and renders `<App />` in
    `StrictMode` (development double-invokes some lifecycles).
 2. `App` starts with `isGameStarted = false`, so only `<StartScreen>` is shown.
-3. Clicking **Start Game** sets `isGameStarted = true`.
+3. Clicking **Start Game**, pressing Enter, or pressing Space sets
+   `isGameStarted = true`. The same gesture creates/resumes the audio context,
+   because browsers block Web Audio until the user interacts.
 4. The `<Canvas>` mounts with a 75° FOV camera and creates `<MazeScene>`.
 5. `MazeScene` lazily creates the first maze with
    `useState(() => generateMaze())` — this runs once per mount.
@@ -54,7 +56,9 @@ maze in place.
 | `touchDirectionRef` | `App` | ref | Latest touch D-pad direction; read by `MazeScene` in `useFrame` |
 | `jumpRequestRef` | `App` | ref | Jump request counter; read by `MazeScene` in `useFrame` |
 | `hasTouch` | `App` | boolean | Shows touch controls after the first touch |
-| `playerRef` | `MazeScene` | mutable ref | Position, rotation, jump physics, collected set — updated every frame without re-rendering |
+| `audioRef` | `App` | ref | Procedural sound engine, created on the first Start gesture |
+| `playerRef` | `MazeScene` | mutable ref | Circle position, rotation, jump physics, collected set — updated every frame without re-rendering |
+| `cameraFollowRef` | `MazeScene` | ref | Smoothed camera position that follows the player circle |
 | `mazeData` | `MazeScene` | state | `{ maze, exitX, exitY, cats }` for the current level |
 | `collectedCats` | `MazeScene` | `Set<number>` | Indices of collected cats; drives cat visibility |
 | `skyIndex` | `MazeScene` | number | Palette index for `SkyGradient`; advances with cats |
@@ -67,9 +71,9 @@ a mutable object:
 
 ```js
 playerRef.current = {
-  x, y,                    // continuous world position (grid units)
+  x, y,                    // circle centre in world units (y is world Z)
   rotation, targetRotation,// radians, multiples of 45°
-  targetX, targetY,        // interpolation targets
+  movementAccumulator,     // fixed-timestep leftover
   jumpVelocity, jumpHeight, isJumping,
   collectedCats            // mirror of the React Set, used inside the controller
 }
@@ -90,18 +94,27 @@ reference to re-render. They are kept in sync in `movementController.js`.
 
 ```text
 1. checkExit()
-   └── if player is on the exit cell AND collectedCats.size === 6:
-         generate a new maze, reset player to (1,1), clear cats, sky → black, return
+   └── if the player circle is within EXIT_REACH_RADIUS of the exit centre
+       AND collectedCats.size === 6:
+          generate a new maze, reset player to (1,1), clear cats, sky → black,
+          play the level-complete arpeggio, snap the camera, return
 
-2. movementController.updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyColor)
+2. movementController.updatePlayerMovement(player, delta)
    ├── apply jump physics (gravity)
    ├── read keyState (arrow keys)
-   ├── attempt forward/backward movement with collision
-   ├── collect a cat if the target cell contains one (forward or backward)
    ├── advance targetRotation continuously while a turn key is held
-   └── interpolate x/y toward targetX/targetY
+   ├── run fixed 1/144 s substeps:
+   │     ├── move the player circle at WALK_SPEED with wall sliding
+   │     └── collect any cat within CAT_PICKUP_RADIUS
+   └── smooth rotation toward targetRotation
 
-3. camera.position = (player.x, 0.5 + jumpHeight, player.y)
+3. audio.update(...)
+   ├── wind gain and footsteps follow the distance actually travelled
+   ├── periodic beacon ping, panned toward the exit
+   └── no sound when walking into a wall
+
+4. camera follows the circle centre with clamped exponential smoothing
+   camera.position = (follow.x, 0.5 + jumpHeight, follow.z)
    camera.rotation = (0, player.rotation, 0)
 
 The directional moonlight direction comes from the moon; the 20×20 shadow frustum
@@ -185,47 +198,44 @@ The controller only understands `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight
 ### Fixed timestep
 
 Movement is simulated in fixed `MOVE_FIXED_STEP = 1/144 s` substeps. The render delta
-fills an accumulator; each substep recomputes the movement target from the current
-position, checks collision, collects cats, and moves 10% toward the target. This
-reproduces the original 144 Hz PC movement feel on a 60 Hz phone, and the speed is the
-same on every display. The accumulator is capped at 15 substeps to avoid a spiral of
-death after a stall.
+fills an accumulator; each substep moves the player circle by
+`WALK_SPEED * MOVE_FIXED_STEP` (3.6 × 1/144 = 0.025 world units), checks collision, and
+collects any nearby cat. This keeps the speed identical on 60 Hz and 144 Hz displays.
+The accumulator is capped at 15 substeps to avoid a spiral of death after a stall.
 
 ### Forward/backward
 
-Forward vector depends on `rotation`:
+The forward vector depends on `rotation`:
 
 ```js
-forwardX = -Math.sin(rotation) * MOVE_STRIDE
-forwardZ = -Math.cos(rotation) * MOVE_STRIDE
+forwardX = -Math.sin(rotation)
+forwardZ = -Math.cos(rotation)
 ```
 
 - At `rotation = 0`, forward is `-Z` (north).
 - At `rotation = -π/2`, forward is `+X` (east).
 - Backward is the negation.
 
-`MOVE_STRIDE` is `0.5`, so each key press attempts a half-cell step. Holding a key
-repeats every fixed substep, and the target is recomputed from the current position, so
-the player glides continuously.
+Movement is continuous: holding a key moves at `WALK_SPEED` every substep.
 
 ### Collision
 
-```js
-gridX = Math.round(x)
-gridZ = Math.round(z)
-walkable = maze[gridZ] && maze[gridZ][gridX] !== 1
+The player is a 2D circle of radius `PLAYER.RADIUS = 0.2` on the floor plane. Every wall
+cell is registered as a 1×1 axis-aligned box in a spatial hash
+(`src/utils/collision.js`). Each simulated step is split into sub-steps no larger than
+half the radius, then resolved one axis at a time:
+
+```text
+try X: if the new circle overlaps a box, reject X
+try Z: if the new circle overlaps a box, reject Z
 ```
 
-Only the **destination** cell is checked. Out-of-bounds rows return `undefined` and are
-treated as blocked. Because the check uses rounding, a diagonal step can clip a wall
-corner; there is no swept collision.
-
-### Grid repel
-
-`avoidGridLines(value)` pushes the target away from a fractional part of `0.5` (the
-boundary between two cell centres) by `GRID_REPEL = 0.2`. The intent is to stop the
-player from standing exactly on a cell boundary. In practice it makes step spacing
-slightly irregular (e.g. `1 → 1.7 → 2.2 → 2.7 …`).
+Because the other axis still moves, the circle **slides along walls** instead of
+sticking. The circle can touch a wall but can never overlap it; there is no corner
+clipping and no tunnelling. `resolvePenetration` is a safety net for teleports or props
+added on top of the player. Four outer boxes fence the maze so future generators cannot
+let the player escape. Cat pickup and the exit check use distances from the circle
+centre, not rounded grid cells.
 
 ### Rotation
 
@@ -260,12 +270,11 @@ airborne.
 
 ### Collection
 
-Inside the movement update, for both forward and backward movement:
+After each moved substep, the controller checks the distance from the circle centre:
 
 ```js
 catIndex = cats.findIndex(cat =>
-  Math.round(cat.x) === Math.round(newTargetX) &&
-  Math.round(cat.y) === Math.round(newTargetY)
+  Math.hypot(cat.x - player.x, cat.y - player.y) <= 0.55
 )
 ```
 
@@ -273,41 +282,50 @@ If found and not already collected:
 
 1. Copy `player.collectedCats`, add the index, store it back.
 2. Call `setCollectedCats(newSet)` so React hides that cat.
-3. Compute the new sky colour:
+3. Call `setSkyIndex(newCollectedCats.size)` to advance the sky palette.
+4. Call the optional `onCatCollected` callback, which plays the meow.
 
-```js
-lighten = (collected / 6) * 40
-sky = hsl(240, 100 - lighten %, 50 + lighten / 2 %)
-```
+Forward and backward movement both collect cats.
 
-| Cats | Sky |
+### Sky palettes
+
+`SkyGradient` lerps between seven palettes: a night palette plus blue, green, purple,
+yellow, rose, and teal for the six cats. The transition is smooth and time-based, so the
+sky does not jump when a cat is collected.
+
+| Cats | Palette |
 | --- | --- |
-| 0 | `#000000` (initial state) |
-| 1 | `hsl(240, 93.3%, 53.3%)` — blue |
-| 3 | `hsl(240, 80%, 60%)` |
-| 6 | `hsl(240, 60%, 70%)` — pale blue |
-
-Both forward and backward movement check for cats.
+| 0 | Night |
+| 1 | Blue |
+| 2 | Green |
+| 3 | Purple |
+| 4 | Yellow |
+| 5 | Rose |
+| 6 | Teal |
 
 ### Completion
 
-`checkExit` requires:
+`checkExit` requires the circle centre to be within `PLAYER.EXIT_REACH_RADIUS` (0.5) of
+the exit centre and all cats to be collected:
 
 ```js
-Math.round(player.x) === exitX &&
-Math.round(player.y) === exitY &&
-collectedCats.size === 6
+const dx = player.x - exitX;
+const dz = player.y - exitY;
+
+dx * dx + dz * dz <= PLAYER.EXIT_REACH_RADIUS ** 2 &&
+  collectedCats.size === 6
 ```
 
-The continuous position is rounded to grid coordinates before comparison. On success
-the scene:
+On success the scene:
 
+- plays the level-complete arpeggio,
 - generates a new maze,
-- resets `player.x/y/targetX/targetY` to `(1,1)`,
+- resets `player.x/y` to `(1,1)`,
 - resets `rotation` / `targetRotation` to face the first open neighbour of the new
   start cell,
 - clears `player.collectedCats` and React's `collectedCats`,
-- resets the sky to black.
+- resets the sky to black,
+- snaps the camera to the new spawn.
 
 ---
 
@@ -316,9 +334,12 @@ the scene:
 ### Camera
 
 - Perspective, FOV 75, near 0.1, far 1000.
-- Position is overwritten every frame from the player.
+- Position follows the player circle with exponential smoothing
+  (`CAMERA.FOLLOW_SMOOTHING = 20/s`), clamped to `CAMERA.MAX_LAG = 0.12` world units.
+  The clamp keeps the camera inside the collision circle, so it cannot enter a wall.
+- The follow position snaps to `(1,1)` when a new maze starts.
 - Height is `0.5 + jumpHeight`, so the eye is half a unit above the floor.
-- Only Y rotation is applied.
+- Only Y rotation is applied; rotation is already smoothed by the controller.
 
 ### Walls
 
@@ -432,15 +453,15 @@ height. Height is `jumpHeight`.
 keydown/keyup ──► movementController.keyState
 touch D-pad ────► App.touchDirectionRef ──► MazeScene useFrame ──► arrows ──► controller
 touch Jump ─────► App.jumpRequestRef ────► MazeScene useFrame ──► Space ──► controller
-                                                          (currently wrong keys)
 
 useFrame(delta)
    ├─ checkExit ──► generateMaze() ──► setMazeData ──► re-render + new controller
    ├─ updatePlayerMovement
-   │     ├─ collision against maze[][]
+   │     ├─ circle collision against wall boxes ──► slide along walls
    │     ├─ cat hit ──► setCollectedCats ──► re-render (cat hidden)
    │     └─ sky update ──► setSkyIndex ──► SkyGradient palette lerp
-   └─ camera.position/rotation = player
+   ├─ audio.update ──► wind/footsteps/beacon
+   └─ camera follow (smoothed, clamped) + rotation
 
 React render
    ├─ walls from generatedMaze
@@ -458,6 +479,7 @@ React render
   persistent score.
 - All tuning lives in `gameConfig.js`, except a few hard-coded values (6 cats, exit
   margin of 2, wall randomisation ranges, camera height 0.5, light position 30).
-- The code mixes two movement styles: continuous interpolation for rendering and
-  grid rounding for collision/collection. This is the source of most of the current
-  bugs.
+- Collision is now geometry-based rather than grid-rounding based. Future props can be
+  added as collision boxes without changing the movement controller.
+- Audio is synthesised at runtime, so there are no asset-loading states or missing-file
+  errors. The engine is silent in browsers without Web Audio.

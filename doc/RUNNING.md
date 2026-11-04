@@ -78,8 +78,10 @@ npx serve -s build
 npm test
 ```
 
-Starts Jest in watch mode. The current smoke tests cover the Enter/Space start keys and
-spawn orientation. `src/setupTests.js` registers jest-dom matchers. For CI-style runs:
+Starts Jest in watch mode. The tests cover Enter/Space start keys, spawn orientation,
+fractal ring generation, continuous hold rotation, circle collision/wall sliding, cat
+pickup, and the silent audio fallback. `src/setupTests.js` registers jest-dom matchers.
+For CI-style runs:
 
 ```bat
 set CI=true
@@ -154,12 +156,9 @@ folder is from an older build; regenerate it before deploying.
 
 - Working directory: `C:\Users\mouni\Desktop\2026-03-26 Maze game - The-Labyrinth-of-Catlantis`
 - Branch: `Touch-control` — local only, **no upstream and not present on GitHub**
-- HEAD: `258f564` (2025-04-01), identical to `origin/main`
-- Uncommitted: `src/App.js`, `src/MazeScene.js`, `src/utils/movementController.js`,
-  `src/utils/mazeGeneration.js`, `src/components/Floor.js`, `src/components/Moon.js`,
-  `src/components/StartScreen.js`, `src/config/gameConfig.js`, `src/index.css`,
-  `public/index.html`, `README.md`, plus new `src/components/TouchControls.js`, `doc/`,
-  and `Start Game.bat`
+- HEAD: see `git log`; all game work is committed on `Touch-control` (ahead of
+  `origin/main` at `258f564`)
+- Working tree: clean after the 2026-11-04 commit
 - `npm run build` was verified successfully while writing this documentation
   (compiled with warnings only about old Browserslist data)
 - `npm start` was verified successfully on a local dev server: compiled and returned
@@ -179,7 +178,9 @@ folder is from an older build; regenerate it before deploying.
   height; the 20×20 shadow zone follows the player and refreshes every frame while
   walking, then at 5 Hz while standing still
 - Movement uses fixed `1/144 s` substeps; simulated speed is **3.6 units/s** at 30, 60,
-  90, 120, 144, and 240 Hz
+  90, 120, 144, and 240 Hz. The player is a 0.2-unit circle and slides along wall boxes.
+- Audio is procedural: footsteps follow actual travel, wind follows speed, the beacon
+  pings periodically with stereo direction, and cats meow on pickup.
 - Floor receives and casts shadows; the follow-player shadow map is `2048²` over a
   20×20 world-unit area
 - Wall scale variations were verified stable across touch-triggered re-renders
@@ -192,7 +193,7 @@ folder is from an older build; regenerate it before deploying.
 | `origin/main` | `258f564` | Remote default branch; matches local `Touch-control` HEAD |
 | `origin/gh-pages` | `1f41a2c` | Deployed build from 2025-04-01; live site serves this |
 | local `main` | `32fb27f` | **Ahead 1**, unpushed: "shading trial, not working" |
-| local `Touch-control` | `258f564` | No upstream; all touch work is uncommitted |
+| local `Touch-control` | current HEAD | No upstream; all game work committed |
 | `add-smooth-keyboard-controls` | `e332a55` | Local only, 2 commits not on any remote |
 | `Experimental-Shading-trial,-to-continue-later` | `32fb27f` | Local only, same experimental commit as `main` |
 | `split-files` | `7d24b4c` | Local only, already merged into `origin/main` |
@@ -201,7 +202,7 @@ The remote has only `main` and `gh-pages`; `Touch-control` does not exist there.
 
 Other repository observations:
 
-- No CI workflow, no test files, no `LICENSE`, no `.nvmrc`, and no `engines` field.
+- No CI workflow, no `LICENSE`, no `.nvmrc`, and no `engines` field. Jest tests exist.
 - `npm audit` reports **69 vulnerabilities** (4 critical, 32 high, 14 moderate,
   19 low), almost entirely transitive dependencies of the CRA 5 build toolchain.
   The critical packages are `form-data`, `proxy-addr`, `shell-quote`, and

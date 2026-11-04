@@ -15,10 +15,8 @@ export const GAME_CONFIG = {
   FLOOR_SIZE: 180,
 
   // Movement Parameters
-  MOVE_SPEED: 0.05, // Halved walking speed; jump physics is unchanged
   MOVE_FIXED_STEP: 1 / 144, // Fixed simulation step; same speed on 60/144 Hz
   ROTATE_SMOOTHING: 15, // Exponential rotation smoothing rate (1/second)
-  MOVE_STRIDE: 0.5,  // Distance per grid movement
   
   // Rotation Constants
   ROTATION_ANGLE: Math.PI / 4, // 45 degrees
@@ -28,9 +26,30 @@ export const GAME_CONFIG = {
   // Jump Mechanics
   JUMP_VELOCITY: 4,    // Increased from 0.3 for stronger initial jump
   GRAVITY: 9.8,        // Increased from 0.5 for more realistic gravity
-  
-  // Collision and Movement
-  GRID_REPEL: 0.2,  // Controls how far from grid lines the player is kept
+
+  // Player collision and interaction. The player is a 2D circle on the floor,
+  // not a grid point: it bumps into walls and slides along them.
+  PLAYER: {
+    RADIUS: 0.2, // World units; corridors are 1 unit wide
+    WALK_SPEED: 3.6, // World units/second (matches the previous slowed feel)
+    CAT_PICKUP_RADIUS: 0.55, // Centre-to-centre distance for collecting a cat
+    EXIT_REACH_RADIUS: 0.5, // Centre-to-centre distance for reaching the exit
+  },
+
+  // The camera follows the collision circle with a small, clamped delay so wall
+  // sliding stays smooth without letting the camera enter a wall.
+  CAMERA: {
+    FOLLOW_SMOOTHING: 20, // Exponential follow rate (1/second)
+    MAX_LAG: 0.12, // Maximum distance between camera and player centre
+  },
+
+  // Procedural audio levels
+  AUDIO: {
+    MASTER_VOLUME: 0.45,
+    WIND_MAX_VOLUME: 0.075,
+    FOOTSTEP_VOLUME: 0.09,
+    BEACON_INTERVAL: 2.4, // Seconds between beacon pings
+  },
   
   // Shadows
   SHADOW: {
