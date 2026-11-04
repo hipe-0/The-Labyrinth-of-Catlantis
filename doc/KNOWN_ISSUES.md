@@ -31,6 +31,7 @@ have now been corrected in the working tree.
 | Level transition | Exit triggers a 5 s camera fly-up/tilt/yaw toward the maze centre, then a splash screen; Start generates the next maze | `MazeScene.js`, `App.js`, `StartScreen.js`, `takeoff.js`, `gameConfig.js` |
 | Cat reward | Collected cats meow and rocket upward for 2.4 s while the sky palette lerps | `MazeScene.js`, `RocketCat.js`, `rocket.js`, `gameConfig.js` |
 | Maze shape | Cells now store four edge-wall bits; passages carve shared edges and merged thin wall segments drive both rendering and collision | `mazeGeneration.js`, `mazeWalls.js`, `collision.js`, `MazeScene.js`, `gameConfig.js` |
+| Wall alignment | Wall ends meet flush at L corners: the horizontal run takes the corner square and the vertical trims onto its face; pass-through caps stay at the cell boundary — no tabs, no overlapping volumes, no z-fighting wireframe edges | `mazeWalls.js` |
 | Takeoff orientation | Camera Euler order is `YXZ`, so pitch stays downward after the yaw turns toward the maze centre | `MazeScene.js` |
 
 ---

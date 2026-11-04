@@ -394,6 +394,11 @@ runs. Each segment is rendered as one thin box:
 - Thickness is `WALL.THICKNESS` (0.12), centred on the cell boundary.
 - The box is placed at `y = WALL.HEIGHT / 2`, so its base sits on the floor.
 - White `lineSegments` edges are added for the wireframe look.
+- At an L corner the horizontal run takes the corner square (its end moves half a
+  thickness past the lattice point) and the vertical wall trims onto the horizontal's
+  face plane, so wall ends meet flush: no floating tab, no overlapping volume, and no
+  coplanar faces that z-fight. At a pass-through (T crossing) caps stay at the cell
+  boundary.
 - There are no random scale variations; the maze is deterministic for a given layout.
 - The same segment list feeds the collision world.
 

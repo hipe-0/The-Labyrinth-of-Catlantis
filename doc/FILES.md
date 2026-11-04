@@ -255,6 +255,13 @@ Converts edge-based maze cells into unique thin wall segments.
 `{ key, orientation, minX, minZ, maxX, maxZ }` boxes. `WALL.THICKNESS` controls the
 panel depth; the same list is shared by rendering and collision.
 
+At every wall joint the boxes abut edge-to-edge: where two walls meet at an L corner
+the horizontal run takes the corner square (its end moves half a thickness past the
+lattice point) and the vertical wall trims onto the horizontal's face plane, so there
+is no protruding tab, no overlapping volume, and no coplanar faces that would
+z-fight. Where a wall only passes through a lattice point its cap stays at the cell
+boundary, hidden inside the crossing wall.
+
 ### `src/utils/fractal.js`
 
 Pure fractal-ring generator used by the horizon mountains.
