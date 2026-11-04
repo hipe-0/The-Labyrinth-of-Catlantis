@@ -43,8 +43,8 @@ only returns Three.js objects through R3F.
 6. `useFrame` starts driving the player and camera every animation frame.
 
 Because the `<Canvas>` only exists after Start is pressed, all game objects are
-created fresh on start. There is no "restart" button; finishing a level regenerates the
-maze in place.
+created fresh on start. Finishing a level keeps the Canvas mounted for the fly-up and
+splash screen; pressing Start on the splash generates the next maze in place.
 
 ---
 
@@ -53,13 +53,19 @@ maze in place.
 | State | Where | Type | Purpose |
 | --- | --- | --- | --- |
 | `isGameStarted` | `App` | boolean | Switches start screen ↔ canvas |
+| `showLevelScreen` | `App` | boolean | Shows the level-complete splash over the final fly-up frame |
+| `completedLevel` | `App` | number | Level number shown on the splash |
+| `levelStartRequest` | `App` | number | Incremented by the splash Start button; tells `MazeScene` to build the next maze |
 | `touchDirectionRef` | `App` | ref | Latest touch D-pad direction; read by `MazeScene` in `useFrame` |
 | `jumpRequestRef` | `App` | ref | Jump request counter; read by `MazeScene` in `useFrame` |
 | `hasTouch` | `App` | boolean | Shows touch controls after the first touch |
 | `audioRef` | `App` | ref | Procedural sound engine, created on the first Start gesture |
 | `playerRef` | `MazeScene` | mutable ref | Circle position, rotation, jump physics, collected set — updated every frame without re-rendering |
 | `cameraFollowRef` | `MazeScene` | ref | Smoothed camera position that follows the player circle |
+| `phaseRef` | `MazeScene` | ref | `playing` → `takeoff` → `between-levels` |
+| `takeoffRef` | `MazeScene` | ref | Start pose and elapsed time for the level-complete fly-up |
 | `mazeData` | `MazeScene` | state | `{ maze, exitX, exitY, cats }` for the current level |
+| `level` | `MazeScene` | number | Current level, incremented when the next maze starts |
 | `collectedCats` | `MazeScene` | `Set<number>` | Indices of collected cats; drives cat visibility |
 | `skyIndex` | `MazeScene` | number | Palette index for `SkyGradient`; advances with cats |
 | `movementController` | `MazeScene` | memo | Closure over the current maze/cats with key handlers and the movement update |
@@ -93,11 +99,15 @@ reference to re-render. They are kept in sync in `movementController.js`.
 `MazeScene` registers one `useFrame` callback. Every frame it does, in order:
 
 ```text
+0. if phase === 'takeoff': advance the fly-up camera, and at the end call
+   onLevelComplete(level) → App shows the splash; otherwise return
+   if phase === 'between-levels': hold the final frame and return
+
 1. checkExit()
    └── if the player circle is within EXIT_REACH_RADIUS of the exit centre
        AND collectedCats.size === 6:
-          generate a new maze, reset player to (1,1), clear cats, sky → black,
-          play the level-complete arpeggio, snap the camera, return
+          start the fly-up (phase → 'takeoff'), play the level-complete
+          arpeggio, stop walking ambience, and return
 
 2. movementController.updatePlayerMovement(player, delta)
    ├── apply jump physics (gravity)
@@ -114,8 +124,12 @@ reference to re-render. They are kept in sync in `movementController.js`.
    └── no sound when walking into a wall
 
 4. camera follows the circle centre with clamped exponential smoothing
-   camera.position = (follow.x, 0.5 + jumpHeight, follow.z)
+   camera.position = (follow.x, EYE_HEIGHT + jumpHeight, follow.z)
    camera.rotation = (0, player.rotation, 0)
+
+The fly-up raises the camera to LEVEL.TAKEOFF_HEIGHT over
+LEVEL.TAKEOFF_DURATION, eases its pitch to LEVEL.TAKEOFF_PITCH, and turns the
+yaw toward the maze centre. See `src/utils/takeoff.js`.
 
 The directional moonlight direction comes from the moon; the 20×20 shadow frustum
 follows the player and refreshes while walking.
@@ -319,13 +333,24 @@ dx * dx + dz * dz <= PLAYER.EXIT_REACH_RADIUS ** 2 &&
 On success the scene:
 
 - plays the level-complete arpeggio,
-- generates a new maze,
+- stops walking ambience and switches `phaseRef` to `takeoff`,
+- raises the camera over `LEVEL.TAKEOFF_DURATION` while easing the pitch down and
+  turning the yaw toward the maze centre,
+- calls `onLevelComplete(level)` when the fly-up finishes, which makes `App` show the
+  splash screen ("Labyrinth cleared", the next level number, and Start).
+
+The new maze is generated only when the splash Start button (or Enter/Space) fires
+`levelStartRequest`. `MazeScene` then:
+
+- generates a new maze and increments `level`,
 - resets `player.x/y` to `(1,1)`,
 - resets `rotation` / `targetRotation` to face the first open neighbour of the new
   start cell,
 - clears `player.collectedCats` and React's `collectedCats`,
 - resets the sky to black,
-- snaps the camera to the new spawn.
+- snaps the camera to the new spawn and returns to `playing`.
+
+Splash wording and fly-up timings live in `GAME_CONFIG.LEVEL`.
 
 ---
 
@@ -338,8 +363,13 @@ On success the scene:
   (`CAMERA.FOLLOW_SMOOTHING = 20/s`), clamped to `CAMERA.MAX_LAG = 0.12` world units.
   The clamp keeps the camera inside the collision circle, so it cannot enter a wall.
 - The follow position snaps to `(1,1)` when a new maze starts.
-- Height is `0.5 + jumpHeight`, so the eye is half a unit above the floor.
-- Only Y rotation is applied; rotation is already smoothed by the controller.
+- Height is `CAMERA.EYE_HEIGHT + jumpHeight` (0.5 + jump), so the eye is half a unit
+  above the floor.
+- Only Y rotation is applied during play; rotation is already smoothed by the
+  controller.
+- During `takeoff`, the camera ignores the follow logic and follows the pure pose from
+  `getTakeoffPose`: fixed X/Z, rising Y, eased pitch, and yaw turning to the maze
+  centre.
 
 ### Walls
 
@@ -455,13 +485,17 @@ touch D-pad ────► App.touchDirectionRef ──► MazeScene useFrame �
 touch Jump ─────► App.jumpRequestRef ────► MazeScene useFrame ──► Space ──► controller
 
 useFrame(delta)
-   ├─ checkExit ──► generateMaze() ──► setMazeData ──► re-render + new controller
+   ├─ phase takeoff ──► getTakeoffPose() ──► animate camera
+   ├─ checkExit ──► beginTakeoff() ──► phase takeoff
    ├─ updatePlayerMovement
    │     ├─ circle collision against wall boxes ──► slide along walls
    │     ├─ cat hit ──► setCollectedCats ──► re-render (cat hidden)
    │     └─ sky update ──► setSkyIndex ──► SkyGradient palette lerp
    ├─ audio.update ──► wind/footsteps/beacon
    └─ camera follow (smoothed, clamped) + rotation
+
+takeoff end ──► App.showLevelScreen = true ──► splash overlay
+splash Start ──► levelStartRequest++ ──► MazeScene generates next maze
 
 React render
    ├─ walls from generatedMaze
@@ -475,10 +509,10 @@ React render
 
 - The game loop is intentionally simple: one mutable player object, one controller
   closure, one frame callback.
-- The maze is regenerated wholesale rather than reset, so there is no level counter or
-  persistent score.
-- All tuning lives in `gameConfig.js`, except a few hard-coded values (6 cats, exit
-  margin of 2, wall randomisation ranges, camera height 0.5, light position 30).
+- The maze is regenerated wholesale when the splash Start fires; the level counter is
+  display-only, with no persistent score.
+- All tuning lives in `gameConfig.js`, including camera eye height, fly-up timings, and
+  splash wording.
 - Collision is now geometry-based rather than grid-rounding based. Future props can be
   added as collision boxes without changing the movement controller.
 - Audio is synthesised at runtime, so there are no asset-loading states or missing-file

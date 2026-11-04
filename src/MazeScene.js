@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 import { generateMaze, getStartRotation } from './utils/mazeGeneration';
 import { createMovementController } from './utils/movementController';
+import { getTakeoffPose } from './utils/takeoff';
 import { GAME_CONFIG } from './config/gameConfig';
 import { CuteCat } from './components/CuteCat';
 import { StarField } from './components/StarField';
@@ -23,9 +24,16 @@ const TOUCH_KEY_MAP = {
 };
 
 const MAZE_CENTER = (GAME_CONFIG.MAZE_WIDTH - 1) / 2;
-const { SHADOW, PLAYER, CAMERA } = GAME_CONFIG;
+const { SHADOW, PLAYER, CAMERA, LEVEL } = GAME_CONFIG;
 
-export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef, audio }) {
+export function MazeScene({
+  isGameStarted,
+  touchDirectionRef,
+  jumpRequestRef,
+  audio,
+  levelStartRequest = 0,
+  onLevelComplete,
+}) {
   const { camera, gl } = useThree();
   const lastTouchDirectionRef = useRef(null);
   const lastJumpRequestRef = useRef(0);
@@ -34,7 +42,11 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef, au
   const shadowUpdateTimerRef = useRef(0);
   const lastShadowFocusRef = useRef({ x: 1, z: 1 });
   const cameraFollowRef = useRef({ x: 1, z: 1 });
+  const phaseRef = useRef('playing');
+  const takeoffRef = useRef(null);
+  const lastLevelStartRequestRef = useRef(levelStartRequest);
 
+  const [level, setLevel] = useState(1);
   const [mazeData, setMazeData] = useState(() => generateMaze());
   const { maze: generatedMaze, exitX, exitY, cats } = mazeData;
   const startRotation = getStartRotation(generatedMaze);
@@ -113,6 +125,42 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef, au
     }
   }, [isGameStarted, movementController]);
 
+  // Start a fresh maze when the splash screen's Start button fires. The Canvas
+  // stays mounted, so the overlay can sit on top of the final fly-up frame.
+  useEffect(() => {
+    if (levelStartRequest === lastLevelStartRequestRef.current) {
+      return;
+    }
+
+    lastLevelStartRequestRef.current = levelStartRequest;
+
+    const nextMazeData = generateMaze();
+    setMazeData(nextMazeData);
+    setLevel((current) => current + 1);
+
+    const player = playerRef.current;
+    player.x = 1;
+    player.y = 1;
+    const nextStartRotation = getStartRotation(nextMazeData.maze);
+    player.rotation = nextStartRotation;
+    player.targetRotation = nextStartRotation;
+    player.movementAccumulator = 0;
+    player.jumpVelocity = 0;
+    player.jumpHeight = 0;
+    player.isJumping = false;
+    player.collectedCats = new Set();
+
+    setCollectedCats(new Set());
+    setSkyIndex(0);
+
+    phaseRef.current = 'playing';
+    takeoffRef.current = null;
+    cameraFollowRef.current = { x: 1, z: 1 };
+    camera.position.set(1, CAMERA.EYE_HEIGHT, 1);
+    camera.rotation.set(0, nextStartRotation, 0);
+    gl.shadowMap.needsUpdate = true;
+  }, [camera, gl, levelStartRequest]);
+
   const checkExit = useCallback(() => {
     const player = playerRef.current;
     const dx = player.x - exitX;
@@ -157,7 +205,78 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef, au
     )
   ), [generatedMaze, wallVariations]);
 
+  const beginTakeoff = () => {
+    const player = playerRef.current;
+
+    phaseRef.current = 'takeoff';
+    takeoffRef.current = {
+      elapsed: 0,
+      duration: LEVEL.TAKEOFF_DURATION,
+      fromX: camera.position.x,
+      fromZ: camera.position.z,
+      fromY: camera.position.y,
+      fromYaw: player.rotation,
+      announced: false,
+    };
+
+    ARROW_KEYS.forEach((key) => movementController.handleKeyUp({ key }));
+    audio?.levelComplete();
+
+    // Stop the walking ambience immediately; the beacon is left out of this
+    // update by omitting exitX/exitY.
+    audio?.update({
+      moving: false,
+      speed: 0,
+      x: player.x,
+      z: player.y,
+      rotation: player.rotation,
+    }, 0);
+  };
+
+  const updateTakeoff = (delta) => {
+    const takeoff = takeoffRef.current;
+
+    if (!takeoff) {
+      return;
+    }
+
+    takeoff.elapsed = Math.min(
+      takeoff.elapsed + Math.min(delta, 0.1),
+      takeoff.duration
+    );
+
+    const pose = getTakeoffPose({
+      fromX: takeoff.fromX,
+      fromZ: takeoff.fromZ,
+      fromYaw: takeoff.fromYaw,
+      elapsed: takeoff.elapsed,
+      duration: takeoff.duration,
+      mazeCenter: MAZE_CENTER,
+      height: LEVEL.TAKEOFF_HEIGHT,
+      pitch: LEVEL.TAKEOFF_PITCH,
+      startHeight: takeoff.fromY,
+    });
+
+    camera.position.set(pose.x, pose.y, pose.z);
+    camera.rotation.set(pose.pitch, pose.yaw, 0);
+
+    if (takeoff.elapsed >= takeoff.duration && !takeoff.announced) {
+      takeoff.announced = true;
+      phaseRef.current = 'between-levels';
+      onLevelComplete?.(level);
+    }
+  };
+
   useFrame((state, delta) => {
+    if (phaseRef.current === 'takeoff') {
+      updateTakeoff(delta);
+      return;
+    }
+
+    if (phaseRef.current !== 'playing') {
+      return;
+    }
+
     const player = playerRef.current;
 
     // Apply touch input from refs instead of React state. This keeps touch
@@ -179,30 +298,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef, au
     }
 
     if (checkExit()) {
-      const newMazeData = generateMaze();
-      setMazeData(newMazeData);
-      
-      player.x = 1;
-      player.y = 1;
-      const nextStartRotation = getStartRotation(newMazeData.maze);
-      player.rotation = nextStartRotation;
-      player.targetRotation = nextStartRotation;
-      player.movementAccumulator = 0;
-      player.jumpVelocity = 0;
-      player.jumpHeight = 0;
-      player.isJumping = false;
-      player.collectedCats = new Set();
-      
-      setCollectedCats(new Set());
-      setSkyIndex(0);
-      audio?.levelComplete();
-
-      // Snap the camera to the new spawn so there is no interpolation streak
-      // across the maze on the first frame of the next level.
-      cameraFollowRef.current = { x: 1, z: 1 };
-      camera.position.set(1, 0.5, 1);
-      camera.rotation.set(0, nextStartRotation, 0);
-      
+      beginTakeoff();
       return;
     }
 
@@ -244,7 +340,7 @@ export function MazeScene({ isGameStarted, touchDirectionRef, jumpRequestRef, au
 
     camera.position.x = follow.x;
     camera.position.z = follow.z;
-    camera.position.y = 0.5 + player.jumpHeight;
+    camera.position.y = CAMERA.EYE_HEIGHT + player.jumpHeight;
     camera.rotation.set(0, player.rotation, 0);
 
     // Moon.js has already copied the moon's world position into the light this

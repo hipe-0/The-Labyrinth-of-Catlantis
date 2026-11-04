@@ -20,9 +20,10 @@ requirements.
    can never overlap a wall, slides along walls, and the camera follows it with
    a short clamped delay. Collision boxes live in a spatial hash so future props
    can reuse the same system.
-7. [ ] Exit sequence: the player takes off, flies slowly into the sky, and the
-   camera tilts down to reveal the labyrinth. Announce the next labyrinth with a
-   splash screen (text TBD) and a Start button.
+7. [x] Exit sequence: the camera rises 30 world units over 5 seconds, tilts down,
+   and turns toward the maze centre so the labyrinth can be seen from above. A
+   splash screen then shows "Labyrinth cleared", the next level number, and a
+   Start button. Wording and timings live in `GAME_CONFIG.LEVEL`.
 8. [ ] Clean out remaining prototype code and stale ideas. (Partly done:
    CRA leftovers and the old movement model are gone; still review unused
    dependencies, deploy script, and docs.)

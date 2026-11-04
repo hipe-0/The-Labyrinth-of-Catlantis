@@ -1,6 +1,13 @@
 import React, { useEffect } from 'react';
 
-export function StartScreen({ onStart }) {
+export function StartScreen({
+  onStart,
+  title = 'The Labyrinth of Catlantis',
+  subtitle = 'Find all the lost cats in the mysterious maze',
+  buttonLabel = 'Start Game',
+  hint = 'Press Enter or Space to start',
+  controlsHint = 'Use Arrow Keys to Navigate | Space to Jump',
+}) {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.repeat) {
@@ -42,14 +49,14 @@ export function StartScreen({ onStart }) {
         margin: '0 0 20px',
         textShadow: '0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073'
       }}>
-        The Labyrinth of Catlantis
+        {title}
       </h1>
       <p style={{
         fontSize: 'clamp(1rem, 4vw, 1.2rem)',
         margin: '0 0 30px',
         maxWidth: '600px'
       }}>
-        Find all the lost cats in the mysterious maze
+        {subtitle}
       </p>
       <button
         onClick={onStart}
@@ -67,7 +74,7 @@ export function StartScreen({ onStart }) {
         onMouseOver={e => e.target.style.transform = 'scale(1.1)'}
         onMouseOut={e => e.target.style.transform = 'scale(1)'}
       >
-        Start Game
+        {buttonLabel}
       </button>
       <p style={{
         marginTop: '20px',
@@ -75,9 +82,13 @@ export function StartScreen({ onStart }) {
         fontSize: 'clamp(0.8rem, 3vw, 0.9rem)',
         opacity: 0.8
       }}>
-        Press Enter or Space to start
-        <br />
-        Use Arrow Keys to Navigate | Space to Jump
+        {hint}
+        {controlsHint ? (
+          <>
+            <br />
+            {controlsHint}
+          </>
+        ) : null}
       </p>
     </div>
   );

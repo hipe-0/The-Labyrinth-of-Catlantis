@@ -24,7 +24,8 @@ have now been corrected in the working tree.
 | Camera | Camera follows the circle centre with clamped exponential smoothing, keeping it inside the collision radius | `MazeScene.js`, `gameConfig.js` |
 | Cat pickup | Proximity-based pickup instead of rounded destination-cell equality; works while forward or backward | `movementController.js` |
 | Exit | Distance-based exit check (`EXIT_REACH_RADIUS = 0.5`) instead of grid rounding | `MazeScene.js` |
-| Audio | Procedural footsteps, speed-dependent wind, directional beacon ping, cat meow, start chime, and level-complete arpeggio | `audioEngine.js`, `App.js`, `MazeScene.js` |
+| Audio | Procedural footsteps, speed-dependent wind, a near-exit beacon bell, cat meow, start chime, and level-complete arpeggio | `audioEngine.js`, `App.js`, `MazeScene.js` |
+| Level transition | Exit triggers a 5 s camera fly-up/tilt/yaw toward the maze centre, then a splash screen; Start generates the next maze | `MazeScene.js`, `App.js`, `StartScreen.js`, `takeoff.js`, `gameConfig.js` |
 
 ---
 

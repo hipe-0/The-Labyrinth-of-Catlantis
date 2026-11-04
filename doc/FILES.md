@@ -125,16 +125,19 @@ React entry point.
 
 Top-level UI and mode switch.
 
-- State: `isGameStarted`, `hasTouch`; refs: `touchDirectionRef`, `jumpRequestRef`,
-  `audioRef`.
+- State: `isGameStarted`, `hasTouch`, `showLevelScreen`, `completedLevel`,
+  `levelStartRequest`; refs: `touchDirectionRef`, `jumpRequestRef`, `audioRef`.
 - Renders `<StartScreen onStart={...}>` until the game starts. Starting (button,
   Enter, or Space) creates/resumes the procedural audio engine and plays the start
   chime.
 - After start, renders a full-screen `<Canvas>` (75° FOV, near 0.1, far 1000, initial
   camera `[1, 0.5, 1]`, antialias, DPR capped at 1.5) containing `<MazeScene>`.
-- Passes `touchDirectionRef`, `jumpRequestRef`, and the audio engine down to
-  `MazeScene`.
-- Shows `<TouchControls>` once `hasTouch` is true.
+- Passes `touchDirectionRef`, `jumpRequestRef`, the audio engine,
+  `levelStartRequest`, and `onLevelComplete` down to `MazeScene`.
+- On level completion, shows a second `<StartScreen>` over the frozen final fly-up
+  frame with "Labyrinth cleared", the next level number, and a Start button. Start
+  increments `levelStartRequest` so `MazeScene` builds the next maze.
+- Shows `<TouchControls>` once `hasTouch` is true, hidden while the level splash is up.
 - `handleTouchMove(direction)` writes the ref; `handleTouchJump()` increments the jump
   ref. Neither causes a 3D re-render.
 - Wrapper is fixed to the viewport with `touchAction: 'none'`, `overscrollBehavior:
@@ -147,7 +150,7 @@ The core of the game.
 Responsibilities:
 
 1. **Level state** — creates `mazeData` with `generateMaze()`, stores
-   `collectedCats` and `skyIndex`.
+   `collectedCats`, `skyIndex`, and the current `level`.
 2. **Player ref** — mutable circle with position, rotation, movement accumulator,
    jump, and collected set. The initial rotation faces the first open neighbour of
    `(1,1)`.
@@ -162,13 +165,16 @@ Responsibilities:
    20×20 zone, refreshes every frame while walking, at 5 Hz when idle, and immediately
    on a new maze.
 6. **Frame loop** — applies touch input, checks exit, updates circle movement and
-   collision, updates audio, and moves the smoothed camera.
+   collision, updates audio, and moves the smoothed camera. Once the exit is reached,
+   `phaseRef` switches to `takeoff` and the camera follows `getTakeoffPose`; after
+   `onLevelComplete`, it holds `between-levels` until `levelStartRequest` changes.
 7. **Scene graph** — sky gradient, moon-following directional light, Moon, StarField,
    Floor, HorizonMountains, ExitBeacon, cats, memoized walls.
 
-Key constants used here: camera eye height `0.5`, directional light intensity `3`,
+Key constants used here: `CAMERA.EYE_HEIGHT`, directional light intensity `3`,
 follow-player shadow target, 20×20 shadow zone, `2048²` map, wall random scale ranges,
-exit beacon position, exit reach radius, and camera follow lag.
+exit beacon position, exit reach radius, camera follow lag, and `LEVEL` fly-up/splash
+settings.
 
 Known quirks: wall scales are memoized per maze and stable; cats are wrapped in
 positioned groups with their palette; `ExitBeacon` receives `exitX`/`exitY` correctly.
@@ -198,7 +204,9 @@ GAME_CONFIG = {
   JUMP_VELOCITY: 4,
   GRAVITY: 9.8,
   PLAYER: { RADIUS, WALK_SPEED, CAT_PICKUP_RADIUS, EXIT_REACH_RADIUS },
-  CAMERA: { FOLLOW_SMOOTHING, MAX_LAG },
+  CAMERA: { EYE_HEIGHT, FOLLOW_SMOOTHING, MAX_LAG },
+  LEVEL: { TAKEOFF_DURATION, TAKEOFF_HEIGHT, TAKEOFF_PITCH, COMPLETE_TITLE,
+           START_BUTTON },
   AUDIO: { MASTER_VOLUME, WIND_MAX_VOLUME, FOOTSTEP_VOLUME, BEACON_INTERVAL,
            BEACON_RANGE, BEACON_VOLUME },
   SHADOW: { ZONE_HALF_SIZE, MAP_SIZE, IDLE_UPDATE_INTERVAL, MOVE_THRESHOLD },
@@ -298,16 +306,29 @@ Internal helpers:
 This file contains the movement model described in
 [ARCHITECTURE.md](ARCHITECTURE.md#6-movement-model).
 
+### `src/utils/takeoff.js`
+
+Pure camera math for the level-complete fly-up.
+
+- `smoothStep(value)` — clamped smoothstep easing.
+- `shortestAngle(from, to)` — signed shortest angular difference.
+- `getTakeoffPose({ fromX, fromZ, fromYaw, elapsed, duration, mazeCenter, height,
+  pitch, startHeight })` — returns the fixed X/Z, rising Y, eased pitch, and yaw turning
+  toward the maze centre. Used by `MazeScene` and covered by `takeoff.test.js`.
+
 ### `src/components/StartScreen.js`
 
-Full-screen DOM overlay with:
+Full-screen DOM overlay, reused for the initial start screen and the level-complete
+splash.
 
-- Title "The Labyrinth of Catlantis" (white text with pink glow).
-- Subtitle "Find all the lost cats in the mysterious maze".
-- Pink **Start Game** button with hover scale.
-- Controls hint: "Press Enter or Space to start" plus arrow-key/jump controls.
+Props:
 
-Props: `onStart` callback. No Three.js.
+- `onStart` — Start button / Enter / Space callback.
+- `title`, `subtitle`, `buttonLabel`, `hint`, `controlsHint` — optional copy. Defaults
+  are the title screen text; the level splash passes "Labyrinth cleared", the next
+  level number, and "Start".
+
+No Three.js.
 
 ### `src/components/TouchControls.js`
 
@@ -428,7 +449,7 @@ Kept as boilerplate.
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
 spawn orientation, fractal ring generation, continuous hold rotation, circle collision
-and wall sliding, cat pickup, and the silent audio fallback.
+and wall sliding, cat pickup, the silent audio fallback, and the takeoff camera math.
 
 ---
 
@@ -462,6 +483,7 @@ index.js
 │       ├── utils/movementController.js
 │       │   ├── utils/collision.js
 │       │   └── config/gameConfig.js
+│       ├── utils/takeoff.js
 │       ├── components/CuteCat.js
 │       │   └── config/gameConfig.js
 │       ├── components/StarField.js

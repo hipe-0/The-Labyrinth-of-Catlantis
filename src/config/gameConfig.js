@@ -39,8 +39,18 @@ export const GAME_CONFIG = {
   // The camera follows the collision circle with a small, clamped delay so wall
   // sliding stays smooth without letting the camera enter a wall.
   CAMERA: {
+    EYE_HEIGHT: 0.5, // World units above the floor
     FOLLOW_SMOOTHING: 20, // Exponential follow rate (1/second)
     MAX_LAG: 0.12, // Maximum distance between camera and player centre
+  },
+
+  // Level-complete fly-up and the splash screen that follows it.
+  LEVEL: {
+    TAKEOFF_DURATION: 5, // Seconds for the camera to rise and tilt down
+    TAKEOFF_HEIGHT: 30, // World units above eye height
+    TAKEOFF_PITCH: -0.9, // Radians; negative looks down
+    COMPLETE_TITLE: 'Labyrinth cleared',
+    START_BUTTON: 'Start',
   },
 
   // Procedural audio levels

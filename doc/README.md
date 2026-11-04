@@ -14,7 +14,7 @@ run it, and which parts are currently unfinished or broken.
 | --- | --- |
 | Project name | `maze-three-project` |
 | Live demo | <https://hipe-0.github.io/The-Labyrinth-of-Catlantis/> |
-| Latest work | 2026-11-04 — circle collision, procedural audio, TODO refresh |
+| Latest work | 2026-11-04 — circle collision, procedural audio, level fly-up/splash |
 | Current branch | `Touch-control` — local branch |
 | Main stack | React 19, Create React App 5, Three.js 0.174, React Three Fiber 9 |
 | Entry point | `src/index.js` → `src/App.js` → `src/MazeScene.js` |
@@ -35,7 +35,7 @@ run it, and which parts are currently unfinished or broken.
 | --- | --- | --- |
 | Local toolchain | Ready | Node 24.18 / npm 11.16 installed, dependencies resolve, `npm start` compiles and serves HTTP 200, `npm run build` succeeds |
 | Git working tree | Ready | Work is committed on `Touch-control`; branch still needs an upstream/push |
-| Game code | Playable, needs device testing | Touch input, timing, cats/exit, lighting, shadows, horizon, sky, circle collision, and procedural audio are implemented; remaining feature work is in [TODO.md](TODO.md) |
+| Game code | Playable, needs device testing | Touch input, timing, cats/exit, lighting, shadows, horizon, sky, circle collision, procedural audio, and the level fly-up/splash are implemented; remaining feature work is in [TODO.md](TODO.md) |
 | Tests / CI | Partial | Jest tests for start keys, spawn orientation, fractal rings, rotation, circle collision/sliding, cat pickup, and the audio fallback; no CI workflow or license |
 | Published site | Stale | `gh-pages` and the live site predate the recent work |
 
@@ -97,7 +97,8 @@ Pages `homepage`, CRA serves the app under
 
 Goal: collect all 6 cats, then reach the exit beacon in the far corner. Collecting cats
 advances a smooth gradient sky palette (blue, green, purple, yellow, rose, teal).
-Reaching the exit with all 6 cats generates a brand-new maze.
+Reaching the exit with all 6 cats starts a slow camera fly-up over the maze; a splash
+screen then announces the next labyrinth, and Start generates a brand-new maze.
 
 ---
 
@@ -146,7 +147,8 @@ The-Labyrinth-of-Catlantis/
 │   │   ├── collision.js         # circle-vs-AABB collision + wall sliding
 │   │   ├── fractal.js           # fractal mountain-ring generator
 │   │   ├── mazeGeneration.js    # maze carving, rooms, cat placement
-│   │   └── movementController.js# keyboard, collision, rotation, jump
+│   │   ├── movementController.js# keyboard, collision, rotation, jump
+│   │   └── takeoff.js           # level-complete fly-up camera math
 │   │
 │   └── components/
 │       ├── StartScreen.js  # title screen and Start button
@@ -171,6 +173,7 @@ The-Labyrinth-of-Catlantis/
 | --- | --- |
 | How is the maze generated? | `src/utils/mazeGeneration.js` |
 | How does movement/collision work? | `src/utils/movementController.js`, `src/utils/collision.js` |
+| How does the level fly-up work? | `src/utils/takeoff.js`, `src/MazeScene.js`, `src/App.js` |
 | How do sounds work? | `src/utils/audioEngine.js` |
 | How is the scene assembled? | `src/MazeScene.js` |
 | How do I tune speed, jump, sky, moon? | `src/config/gameConfig.js` |
