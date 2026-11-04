@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" width="1200" height="780">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#0a2a3a"/>
+      <stop offset="0.55" stop-color="#0d4d55"/>
+      <stop offset="1" stop-color="#3f8f7a"/>
+    </linearGradient>
+    <linearGradient id="skyWarm" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#1a0b2e"/>
+      <stop offset="0.55" stop-color="#5c1235"/>
+      <stop offset="1" stop-color="#f28a8a"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#e60073"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="780" fill="#05070c"/>
+  <text x="60" y="64" fill="#ffffff" font-family="Arial, sans-serif" font-size="34" font-weight="700">Wall openings &amp; roofs</text>
+  <text x="60" y="100" fill="#aab6c8" font-family="Arial, sans-serif" font-size="18">Initial engine proposal for the edge-wall labyrinth</text>
+
+  <!-- LEFT PANEL: wall with opening -->
+  <g>
+    <rect x="52" y="140" width="520" height="560" rx="8" fill="#090d14" stroke="#2a3444" stroke-width="2"/>
+    <text x="80" y="184" fill="#ffffff" font-family="Arial, sans-serif" font-size="20" font-weight="700">Window opening</text>
+    <text x="80" y="210" fill="#8f9bad" font-family="Arial, sans-serif" font-size="14">Split one wall segment into four low-poly boxes.</text>
+
+    <!-- sky seen through window -->
+    <rect x="130" y="270" width="360" height="280" fill="url(#skyWarm)" opacity="0.7"/>
+
+    <!-- wall front face -->
+    <path d="M100 240 L520 240 L520 580 L100 580 Z" fill="#000000" stroke="#ffffff" stroke-width="3"/>
+    <!-- opening -->
+    <rect x="230" y="330" width="160" height="110" fill="url(#sky)" stroke="#ffffff" stroke-width="3"/>
+    <!-- frame / mullion -->
+    <line x1="310" y1="330" x2="310" y2="440" stroke="#ffffff" stroke-width="2"/>
+    <line x1="230" y1="385" x2="390" y2="385" stroke="#ffffff" stroke-width="2"/>
+
+    <!-- dimension lines -->
+    <line x1="230" y1="300" x2="390" y2="300" stroke="#e60073" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+    <text x="286" y="292" fill="#e60073" font-family="Arial, sans-serif" font-size="14">width</text>
+    <line x1="410" y1="330" x2="410" y2="440" stroke="#e60073" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+    <text x="420" y="390" fill="#e60073" font-family="Arial, sans-serif" font-size="14">height</text>
+    <line x1="205" y1="440" x2="205" y2="580" stroke="#e60073" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+    <text x="150" y="516" fill="#e60073" font-family="Arial, sans-serif" font-size="14">sill</text>
+
+    <!-- labels -->
+    <text x="80" y="626" fill="#c8d2e0" font-family="Arial, sans-serif" font-size="14">Render pieces: sill, lintel, left jamb, right jamb.</text>
+    <text x="80" y="650" fill="#c8d2e0" font-family="Arial, sans-serif" font-size="14">Collision stays the full 2D wall box for now.</text>
+    <text x="80" y="674" fill="#8f9bad" font-family="Arial, sans-serif" font-size="13">Future low openings can add separate collision boxes.</text>
+  </g>
+
+  <!-- RIGHT PANEL: roofed room -->
+  <g>
+    <rect x="628" y="140" width="520" height="560" rx="8" fill="#090d14" stroke="#2a3444" stroke-width="2"/>
+    <text x="656" y="184" fill="#ffffff" font-family="Arial, sans-serif" font-size="20" font-weight="700">Roof + skylight</text>
+    <text x="656" y="210" fill="#8f9bad" font-family="Arial, sans-serif" font-size="14">Per-cell roof metadata, shown in the fly-up overview.</text>
+
+    <!-- floor -->
+    <path d="M700 520 L900 600 L1080 520 L880 440 Z" fill="#141a24" stroke="#ffffff" stroke-width="2"/>
+    <!-- left wall -->
+    <path d="M700 520 L700 330 L880 250 L880 440 Z" fill="#000000" stroke="#ffffff" stroke-width="3"/>
+    <!-- right wall -->
+    <path d="M880 440 L1080 520 L1080 330 L880 250 Z" fill="#000000" stroke="#ffffff" stroke-width="3"/>
+
+    <!-- gable roof -->
+    <path d="M700 330 L880 250 L1080 330 L900 410 Z" fill="#000000" stroke="#ffffff" stroke-width="3"/>
+    <path d="M790 290 L950 365 L990 345 L830 270 Z" fill="url(#sky)" stroke="#ffffff" stroke-width="2"/>
+
+    <!-- labels -->
+    <line x1="690" y1="292" x2="815" y2="312" stroke="#e60073" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="640" y="288" fill="#e60073" font-family="Arial, sans-serif" font-size="14">skylight</text>
+    <line x1="1080" y1="420" x2="1120" y2="420" stroke="#e60073" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="1100" y="415" fill="#e60073" font-family="Arial, sans-serif" font-size="14">roof</text>
+
+    <text x="656" y="626" fill="#c8d2e0" font-family="Arial, sans-serif" font-size="14">Roofs are metadata: { type, height, skylights }.</text>
+    <text x="656" y="650" fill="#c8d2e0" font-family="Arial, sans-serif" font-size="14">Default off inside play; fade in during takeoff.</text>
+    <text x="656" y="674" fill="#8f9bad" font-family="Arial, sans-serif" font-size="13">Skylights reuse the same opening-splitting code.</text>
+  </g>
+
+  <text x="60" y="748" fill="#8f9bad" font-family="Arial, sans-serif" font-size="13">Proposal only — no runtime geometry changes yet.</text>
+</svg>

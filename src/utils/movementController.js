@@ -1,35 +1,32 @@
 // src/utils/movementController.js
 import { GAME_CONFIG } from '../config/gameConfig';
+import { createMazeCollisionWorld, moveCircle } from './collision';
 
 export const createMovementController = (
-  maze, 
-  playerRef, 
-  setCollectedCats, 
-  setSkyColor, 
-  cats
+  maze,
+  playerRef,
+  setCollectedCats,
+  setSkyIndex,
+  cats,
+  onCatCollected
 ) => {
-  const { 
-    MOVE_SPEED, 
-    ROTATE_SPEED, 
-    ROTATION_ANGLE, 
+  const {
+    MOVE_FIXED_STEP,
+    ROTATE_SMOOTHING,
+    ROTATION_ANGLE,
+    ROTATION_STEP_INTERVAL,
     ROTATION_THRESHOLD,
-    MOVE_STRIDE,
-    GRID_REPEL
+    PLAYER
   } = GAME_CONFIG;
+
+  const MAX_MOVEMENT_SUBSTEPS = 15;
+  const ROTATION_SPEED = ROTATION_ANGLE / ROTATION_STEP_INTERVAL;
+  const collisionWorld = createMazeCollisionWorld(maze);
 
   const keyState = {
     ArrowUp: false,
-    ArrowDown: false,
     ArrowLeft: false,
     ArrowRight: false
-  };
-
-  const checkCollision = (x, z) => {
-    const gridX = Math.round(x);
-    const gridZ = Math.round(z);
-
-    return maze[Math.round(gridZ)] && 
-           maze[Math.round(gridZ)][Math.round(gridX)] !== 1;
   };
 
   const normalizeRotation = (rotation) => {
@@ -37,38 +34,30 @@ export const createMovementController = (
     return Math.round(rotation / ROTATION_ANGLE) * ROTATION_ANGLE;
   };
 
-  const avoidGridLines = (value) => {
-    const fractionalPart = value - Math.floor(value);
-    const centerLine = 0.5;
-    
-    // If too close to center line (0.5), push away from it
-    if (Math.abs(fractionalPart - centerLine) < GRID_REPEL) {
-      // Push to the nearest safe zone
-      return Math.floor(value) + (fractionalPart < centerLine ? 
-        centerLine - GRID_REPEL : 
-        centerLine + GRID_REPEL
-      );
-    }
-    
-    return value;
-  };
-
   const handleKeyDown = (event) => {
-    switch(event.key) {
+    const player = playerRef.current;
+
+    switch (event.key) {
       case 'ArrowUp':
         keyState.ArrowUp = true;
         break;
-      case 'ArrowDown':
-        keyState.ArrowDown = true;
-        break;
       case 'ArrowLeft':
-        keyState.ArrowLeft = true;
+        if (!keyState.ArrowLeft) {
+          keyState.ArrowLeft = true;
+          player.targetRotation = normalizeRotation(
+            player.targetRotation + ROTATION_ANGLE
+          );
+        }
         break;
       case 'ArrowRight':
-        keyState.ArrowRight = true;
+        if (!keyState.ArrowRight) {
+          keyState.ArrowRight = true;
+          player.targetRotation = normalizeRotation(
+            player.targetRotation - ROTATION_ANGLE
+          );
+        }
         break;
       case ' ':
-        const player = playerRef.current;
         if (!player.isJumping) {
           player.isJumping = true;
           player.jumpVelocity = GAME_CONFIG.JUMP_VELOCITY;
@@ -81,12 +70,9 @@ export const createMovementController = (
   };
 
   const handleKeyUp = (event) => {
-    switch(event.key) {
+    switch (event.key) {
       case 'ArrowUp':
         keyState.ArrowUp = false;
-        break;
-      case 'ArrowDown': 
-        keyState.ArrowDown = false;
         break;
       case 'ArrowLeft':
         keyState.ArrowLeft = false;
@@ -99,11 +85,70 @@ export const createMovementController = (
     }
   };
 
-  const updatePlayerMovement = (player, delta, cats, setCollectedCats, setSkyColor) => {
+  const collectCatNear = (x, z) => {
+    const catIndex = cats.findIndex((cat) =>
+      Math.hypot(cat.x - x, cat.y - z) <= PLAYER.CAT_PICKUP_RADIUS
+    );
+
+    if (catIndex === -1) {
+      return;
+    }
+
+    const newCollectedCats = new Set(playerRef.current.collectedCats);
+
+    if (newCollectedCats.has(catIndex)) {
+      return;
+    }
+
+    newCollectedCats.add(catIndex);
+    playerRef.current.collectedCats = newCollectedCats;
+    setCollectedCats(newCollectedCats);
+    setSkyIndex(newCollectedCats.size);
+
+    if (onCatCollected) {
+      onCatCollected(catIndex);
+    }
+  };
+
+  const movePlayer = (player) => {
+    if (!keyState.ArrowUp) {
+      return;
+    }
+
+    const distance = PLAYER.WALK_SPEED * MOVE_FIXED_STEP;
+    const dx = -Math.sin(player.rotation) * distance;
+    const dz = -Math.cos(player.rotation) * distance;
+    const previousX = player.x;
+    const previousZ = player.y;
+    const result = moveCircle(
+      collisionWorld,
+      player.x,
+      player.y,
+      dx,
+      dz,
+      PLAYER.RADIUS
+    );
+
+    player.x = result.x;
+    player.y = result.z;
+
+    if (
+      Math.abs(player.x - previousX) + Math.abs(player.y - previousZ) >
+      1e-7
+    ) {
+      collectCatNear(player.x, player.y);
+    }
+  };
+
+  const updatePlayerMovement = (player, delta) => {
+    // Clamp very long frames (tab switches, stalls) so physics and rotation do
+    // not jump by a large amount at once.
+    const frameDelta = Math.min(delta, 0.1);
+
     // Jump physics with gravity
     if (player.isJumping) {
-      player.jumpVelocity -= GAME_CONFIG.GRAVITY * delta;
-      player.jumpHeight += player.jumpVelocity * delta;
+      player.jumpVelocity -= GAME_CONFIG.GRAVITY * frameDelta;
+      player.jumpHeight += player.jumpVelocity * frameDelta;
 
       if (player.jumpHeight <= 0) {
         player.jumpHeight = 0;
@@ -112,73 +157,40 @@ export const createMovementController = (
       }
     }
 
-    let newTargetX = player.targetX;
-    let newTargetY = player.targetY;
-    let movementOccurred = false;
+    // Continuous rotation while a turn key/button is held. The target advances
+    // at a constant angular speed instead of jumping every 45°, which removes
+    // the visible stop-start "hiccups" at low rotation speeds. On release the
+    // target snaps back to the nearest 45° so movement stays grid-aligned.
+    const turnDirection =
+      (keyState.ArrowLeft ? 1 : 0) - (keyState.ArrowRight ? 1 : 0);
 
-    // Forward movement
-    if (keyState.ArrowUp) {
-      const newX = player.x - Math.sin(player.rotation) * MOVE_STRIDE;
-      const newZ = player.y - Math.cos(player.rotation) * MOVE_STRIDE;
-      
-      if (checkCollision(newX, newZ)) {
-        newTargetX = avoidGridLines(newX);
-        newTargetY = avoidGridLines(newZ);
-        movementOccurred = true;
-        
-        const catIndex = cats.findIndex(cat => 
-          Math.round(cat.x) === Math.round(newTargetX) && 
-          Math.round(cat.y) === Math.round(newTargetY)
-        );
-        
-        if (catIndex !== -1) {
-          const newCollectedCats = new Set(player.collectedCats);
-          if (!newCollectedCats.has(catIndex)) {
-            newCollectedCats.add(catIndex);
-            player.collectedCats = newCollectedCats;
-            setCollectedCats(newCollectedCats);
-
-            const lightenPercentage = (newCollectedCats.size / 6) * 40;
-            const newSkyColor = `hsl(240, ${100 - lightenPercentage}%, ${50 + lightenPercentage/2}%)`;
-            setSkyColor(newSkyColor);
-          }
-        }
-      }
+    if (turnDirection !== 0) {
+      player.targetRotation += turnDirection * ROTATION_SPEED * frameDelta;
+    } else {
+      player.targetRotation = normalizeRotation(player.targetRotation);
     }
 
-    // Backward movement
-    if (keyState.ArrowDown) {
-      const newX = player.x + Math.sin(player.rotation) * MOVE_STRIDE;
-      const newZ = player.y + Math.cos(player.rotation) * MOVE_STRIDE;
-      
-      if (checkCollision(newX, newZ)) {
-        newTargetX = avoidGridLines(newX);
-        newTargetY = avoidGridLines(newZ);
-        movementOccurred = true;
-      }
+    // Fixed-timestep movement. 144 Hz matches the original high-refresh PC
+    // feel; 60 Hz phones run the same number of simulation steps per second.
+    player.movementAccumulator = Math.min(
+      (player.movementAccumulator || 0) + frameDelta,
+      MOVE_FIXED_STEP * MAX_MOVEMENT_SUBSTEPS
+    );
+
+    let movementSteps = 0;
+    while (
+      player.movementAccumulator >= MOVE_FIXED_STEP &&
+      movementSteps < MAX_MOVEMENT_SUBSTEPS
+    ) {
+      movePlayer(player);
+      player.movementAccumulator -= MOVE_FIXED_STEP;
+      movementSteps++;
     }
 
-    if (movementOccurred) {
-      player.targetX = newTargetX;
-      player.targetY = newTargetY;
-    }
-    
-    // Rotate left (counterclockwise)
-    if (keyState.ArrowLeft) {
-      player.targetRotation = normalizeRotation(player.rotation + ROTATION_ANGLE);
-    }
-
-    // Rotate right (clockwise)
-    if (keyState.ArrowRight) {
-      player.targetRotation = normalizeRotation(player.rotation - ROTATION_ANGLE);
-    }
-
-    // Regular movement interpolation
-    player.x += (player.targetX - player.x) * MOVE_SPEED;
-    player.y += (player.targetY - player.y) * MOVE_SPEED;
-
-    // Smooth rotation interpolation
-    player.rotation += (player.targetRotation - player.rotation) * ROTATE_SPEED;
+    // Smooth rotation interpolation. Exponential smoothing is frame-rate
+    // independent, so the turn feels the same at 30, 60, or 144 fps.
+    const rotationBlend = 1 - Math.exp(-ROTATE_SMOOTHING * frameDelta);
+    player.rotation += (player.targetRotation - player.rotation) * rotationBlend;
 
     // Precise rotation alignment
     if (Math.abs(player.rotation - player.targetRotation) < ROTATION_THRESHOLD) {
@@ -186,10 +198,10 @@ export const createMovementController = (
     }
   };
 
-  return { 
-    handleKeyDown, 
-    handleKeyUp, 
+  return {
+    handleKeyDown,
+    handleKeyUp,
     updatePlayerMovement,
-    keyState 
+    keyState
   };
 };
