@@ -168,14 +168,14 @@ Responsibilities:
    `phaseRef` switches to `takeoff` and the camera follows `getTakeoffPose`; after
    `onLevelComplete`, it holds `between-levels` until `levelStartRequest` changes.
 7. **Scene graph** — sky gradient, moon-following directional light, Moon, StarField,
-   Floor, HorizonMountains, ExitBeacon, cats, memoized walls.
+   Floor, HorizonMountains, ExitBeacon, cats/rockets, memoized edge-wall segments.
 
 Key constants used here: `CAMERA.EYE_HEIGHT`, directional light intensity `3`,
-follow-player shadow target, 20×20 shadow zone, `2048²` map, wall random scale ranges,
-exit beacon position, exit reach radius, camera follow lag, and `LEVEL` fly-up/splash
-settings.
+follow-player shadow target, 20×20 shadow zone, `2048²` map, `WALL.HEIGHT` /
+`WALL.THICKNESS`, exit beacon position, exit reach radius, camera follow lag, and
+`LEVEL` fly-up/splash settings.
 
-Known quirks: wall scales are memoized per maze and stable; cats are wrapped in
+Known quirks: wall segments are memoized per maze and stable; cats are wrapped in
 positioned groups with their palette; `ExitBeacon` receives `exitX`/`exitY` correctly.
 Remaining issues are tracked in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
@@ -204,6 +204,7 @@ GAME_CONFIG = {
   GRAVITY: 9.8,
   PLAYER: { RADIUS, WALK_SPEED, CAT_PICKUP_RADIUS, EXIT_REACH_RADIUS },
   CAMERA: { EYE_HEIGHT, FOLLOW_SMOOTHING, MAX_LAG },
+  WALL: { THICKNESS, HEIGHT },
   CAT_ROCKET: { DELAY, DURATION, HEIGHT, SPIN_SPEED, END_SCALE },
   LEVEL: { TAKEOFF_DURATION, TAKEOFF_HEIGHT, TAKEOFF_PITCH, COMPLETE_TITLE,
            START_BUTTON },
@@ -227,21 +228,32 @@ Exports:
 
 | Export | Signature | Purpose |
 | --- | --- | --- |
-| `createEmptyMaze` | `(width, height) => number[][]` | Grid filled with `1` (walls) |
+| `createEmptyMaze` | `(width, height) => cell[][]` | Grid of cells with all four wall bits set |
 | `isValidMazeCoordinate` | `(maze, x, y) => boolean` | Bounds check |
-| `placeCats` | `(maze) => {x, y, color}[]` | Up to 6 unique walkable cells with palettes |
+| `hasWall` / `removeWall` | `(cell, wall) => ...` | Inspect/clear a wall bit |
+| `placeCats` | `(maze) => {x, y, color}[]` | Up to 6 unique interior cells with palettes |
 | `generateMaze` | `() => {maze, exitX, exitY, cats}` | Full level |
+
+Wall constants: `WALL_NORTH = 1`, `WALL_EAST = 2`, `WALL_SOUTH = 4`, `WALL_WEST = 8`,
+`ALL_WALLS = 15`.
 
 Internal helpers:
 
-- `carvePassages(maze, x, y)` — recursive backtracker, step 2.
-- `createRooms(maze, numRooms)` — 3–5 random rectangular rooms.
-- `clearRoomArea(maze, startX, startY, roomWidth, roomHeight)` — sets cells to `0`.
+- `carvePassages(maze, x, y)` — iterative recursive backtracker over every cell; removes
+  the shared wall from both sides.
+- `createRooms(maze, numRooms)` — 3–5 random rectangular rooms; removes internal walls.
+- `openRoomArea(...)` — opens the 2×2..4×4 rectangle.
 
-Cats are placed with `Math.random()`; the start cell `(1,1)` is excluded so a cat can
-never spawn under the player. A level can theoretically have fewer than 6 cats if the
-attempt limit is hit, but on a 31 × 31 maze with many floor cells this is effectively
-impossible.
+Cats are placed with `Math.random()` on interior cells; the start cell `(1,1)` is
+excluded so a cat can never spawn under the player.
+
+### `src/utils/mazeWalls.js`
+
+Converts edge-based maze cells into unique thin wall segments.
+
+`getMazeWallSegments(maze)` collects the wall bits, merges collinear runs, and returns
+`{ key, orientation, minX, minZ, maxX, maxZ }` boxes. `WALL.THICKNESS` controls the
+panel depth; the same list is shared by rendering and collision.
 
 ### `src/utils/fractal.js`
 
@@ -262,8 +274,9 @@ Pure 2D circle-vs-AABB collision used by the movement controller.
 - `moveCircle(world, x, z, dx, dz, radius)` — subdivides displacement, resolves X then
   Z (or Z then X), rejects axes that would overlap a box, and returns the final
   position. The remaining axis slides along the wall.
-- `createMazeCollisionWorld(maze)` — registers every `1` cell as a 1×1 box and adds four
-  outer fence boxes so the player cannot leave the maze.
+- `createMazeCollisionWorld(maze)` — registers the thin wall segments from
+  `mazeWalls.js` (or 1×1 blocks if given a legacy numeric maze) and adds four outer
+  fence boxes so the player cannot leave the maze.
 
 The spatial hash keeps lookups local, so additional props can add boxes without
 scanning the whole maze.
@@ -462,8 +475,8 @@ contains the system font stack and font smoothing.
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
 spawn orientation, fractal ring generation, continuous hold rotation, circle collision
-and wall sliding, cat pickup, the silent audio fallback, takeoff camera math, and the
-cat-rocket curve.
+and wall sliding, cat pickup, the silent audio fallback, takeoff camera math, the
+cat-rocket curve, edge-maze connectivity, and wall-segment merging.
 
 ---
 
@@ -493,6 +506,9 @@ index.js
 │   │   └── config/gameConfig.js
 │   └── MazeScene.js
 │       ├── utils/mazeGeneration.js
+│       │   └── config/gameConfig.js
+│       ├── utils/mazeWalls.js
+│       │   ├── utils/mazeGeneration.js
 │       │   └── config/gameConfig.js
 │       ├── utils/movementController.js
 │       │   ├── utils/collision.js

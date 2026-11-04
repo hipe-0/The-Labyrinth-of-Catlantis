@@ -32,8 +32,9 @@ requirements.
    smoothly through the gradient palettes; the cat rises for 2.4 s, spins, and
    shrinks. Palette review image: `doc/mockups/sky-gradients.png`.
 10. [x] Spawn facing an open neighbour instead of a wall.
-11. [ ] Move from "wall block / empty floor" cells to edge-based cells (north
-    wall, west wall, or both). Generate that kind of maze and update collision.
+11. [x] Move from "wall block / empty floor" cells to edge-based cells. Every cell
+    stores north/east/south/west wall bits; the generator carves passages by removing
+    shared edges, and rendering/collision both use merged thin wall segments.
 12. [ ] Start the engine work needed for richer geometry later: roofs and window
     openings in walls. Make an initial proposal and keep collision extensible.
 13. [x] Remove the backward command and the down/backward arrow. The touch D-pad is

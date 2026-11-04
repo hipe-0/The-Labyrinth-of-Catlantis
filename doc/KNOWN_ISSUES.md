@@ -27,6 +27,8 @@ have now been corrected in the working tree.
 | Audio | Procedural footsteps, speed-dependent wind, a near-exit beacon bell, cat meow, start chime, and level-complete arpeggio | `audioEngine.js`, `App.js`, `MazeScene.js` |
 | Level transition | Exit triggers a 5 s camera fly-up/tilt/yaw toward the maze centre, then a splash screen; Start generates the next maze | `MazeScene.js`, `App.js`, `StartScreen.js`, `takeoff.js`, `gameConfig.js` |
 | Cat reward | Collected cats meow and rocket upward for 2.4 s while the sky palette lerps | `MazeScene.js`, `RocketCat.js`, `rocket.js`, `gameConfig.js` |
+| Maze shape | Cells now store four edge-wall bits; passages carve shared edges and merged thin wall segments drive both rendering and collision | `mazeGeneration.js`, `mazeWalls.js`, `collision.js`, `MazeScene.js`, `gameConfig.js` |
+| Takeoff orientation | Camera Euler order is `YXZ`, so pitch stays downward after the yaw turns toward the maze centre | `MazeScene.js` |
 
 ---
 

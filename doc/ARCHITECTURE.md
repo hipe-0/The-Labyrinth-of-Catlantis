@@ -152,42 +152,43 @@ File: `src/utils/mazeGeneration.js`
 
 ### Representation
 
-`maze` is a 2D array `maze[y][x]` of size 31 × 31:
+`maze` is a 2D array `maze[y][x]` of size 31 × 31. Every cell stores a wall bitmask:
 
-| Value | Meaning |
+| Bit | Side |
 | --- | --- |
-| `1` | wall |
-| `0` | walkable floor |
-| `2` | exit cell (also walkable) |
+| `WALL_NORTH = 1` | north edge |
+| `WALL_EAST = 2` | east edge |
+| `WALL_SOUTH = 4` | south edge |
+| `WALL_WEST = 8` | west edge |
 
-`x` is the column (world X), `y` is the row (world Z).
+A cell can have any combination of these, so walls live on cell boundaries rather
+than filling whole cells. `x` is the column (world X), `y` is the row (world Z).
 
 ### Algorithm
 
-1. **Fill** with walls (`createEmptyMaze`).
-2. **Recursive backtracker** (`carvePassages`) starting at `(1,1)`:
-   - Mark the current cell as floor.
-   - Consider neighbours two cells away in the four cardinal directions, in random
-     order.
-   - If a neighbour is in bounds and still a wall, carve the cell between them and
-     recurse.
-   - Because the step is 2 on an odd-sized grid, this produces the classic
-     "perfect maze" with walls on even coordinates and corridors on odd ones.
-3. **Force the start open** (`maze[1][1] = 0`).
-4. **Set the exit** at `(MAZE_WIDTH - 2, MAZE_HEIGHT - 2)` = `(29, 29)`, value `2`.
-5. **Carve 3–5 random rooms** (`createRooms`): each room is 2–4 cells wide/high and
-   clears its rectangle, which can open walls and create loops/open areas.
-6. **Place 6 cats** (`placeCats`): random walkable cells, no duplicate coordinates,
-   each assigned one of four palettes (`white`, `black`, `gray`, `mix`).
-7. Return `{ maze, exitX, exitY, cats }`.
+1. **Fill** every cell with all four walls (`createEmptyMaze`).
+2. **Iterative recursive backtracker** (`carvePassages`) starting at `(1,1)`:
+   - Mark the start visited and push it on a stack.
+   - At the top cell, shuffle the four directions; move to the first in-bounds,
+     unvisited neighbour.
+   - Remove the shared wall from both cells, mark the neighbour visited, and push it.
+   - When no neighbour is available, pop the stack.
+   - Every cell is visited, so the base maze is fully connected.
+3. **Set the exit** at `(MAZE_WIDTH - 2, MAZE_HEIGHT - 2)` = `(29, 29)` with an
+   `exit` flag.
+4. **Carve 3–5 random rooms** (`createRooms`): each room is 2–4 cells wide/high; internal
+   walls are removed. Removing walls cannot disconnect the maze.
+5. **Place 6 cats** (`placeCats`): random interior cells, no duplicate coordinates, each
+   assigned one of four palettes (`white`, `black`, `gray`, `mix`).
+6. Return `{ maze, exitX, exitY, cats }`.
 
-The recursive backtracker is depth-first; on a 31 × 31 grid the recursion depth stays
-around a few hundred calls, well within normal stack limits.
+`src/utils/mazeWalls.js` converts the cell bitmasks into unique thin wall segments,
+merging collinear runs. The same segment list is used for both rendering and collision.
 
 ### Tunable dimensions
 
-`MAZE_WIDTH` and `MAZE_HEIGHT` live in `src/config/gameConfig.js`. The generator
-assumes odd dimensions for the step-2 carving to line up with the borders.
+`MAZE_WIDTH` and `MAZE_HEIGHT` live in `src/config/gameConfig.js`. The outer boundary is
+always walled; the player can walk through every interior cell.
 
 ---
 
@@ -236,10 +237,11 @@ Movement is continuous: holding `ArrowUp`/the touch forward button moves at
 
 ### Collision
 
-The player is a 2D circle of radius `PLAYER.RADIUS = 0.2` on the floor plane. Every wall
-cell is registered as a 1×1 axis-aligned box in a spatial hash
-(`src/utils/collision.js`). Each simulated step is split into sub-steps no larger than
-half the radius, then resolved one axis at a time:
+The player is a 2D circle of radius `PLAYER.RADIUS = 0.2` on the floor plane. Every
+unique wall segment is registered as a thin axis-aligned box in a spatial hash
+(`src/utils/collision.js`, using the segments from `mazeWalls.js`). Each simulated step
+is split into sub-steps no larger than half the radius, then resolved one axis at a
+time:
 
 ```text
 try X: if the new circle overlaps a box, reject X
@@ -377,22 +379,23 @@ Splash wording and fly-up timings live in `GAME_CONFIG.LEVEL`.
 - Height is `CAMERA.EYE_HEIGHT + jumpHeight` (0.5 + jump), so the eye is half a unit
   above the floor.
 - Only Y rotation is applied during play; rotation is already smoothed by the
-  controller.
+  controller. The camera uses `YXZ` Euler order so a negative pitch always looks down
+  after the yaw, which matters during takeoff.
 - During `takeoff`, the camera ignores the follow logic and follows the pure pose from
   `getTakeoffPose`: fixed X/Z, rising Y, eased pitch, and yaw turning to the maze
   centre.
 
 ### Walls
 
-For every cell equal to `1`:
+`mazeWalls.js` converts the cell-edge bitmasks into wall segments and merges collinear
+runs. Each segment is rendered as one thin box:
 
-- A 1 × 1 × 1 white box, scaled:
-  - horizontal scale is usually `1`; 10% of walls get `0.85–1.15`,
-  - vertical scale is usually `1`; 20% of walls get `0.5–3.0`.
-- The group is placed at `y = verticalScale / 2`, so the box base sits on the floor.
-- White `lineSegments` edges are added on top for a wireframe look.
-- The random scale variations are memoized per maze, so they stay stable across
-  re-renders (collecting a cat, pressing a touch button, etc.).
+- Width/depth come from the segment extents; height is `WALL.HEIGHT` (1).
+- Thickness is `WALL.THICKNESS` (0.12), centred on the cell boundary.
+- The box is placed at `y = WALL.HEIGHT / 2`, so its base sits on the floor.
+- White `lineSegments` edges are added for the wireframe look.
+- There are no random scale variations; the maze is deterministic for a given layout.
+- The same segment list feeds the collision world.
 
 ### Floor
 
@@ -509,7 +512,7 @@ takeoff end ──► App.showLevelScreen = true ──► splash overlay
 splash Start ──► levelStartRequest++ ──► MazeScene generates next maze
 
 React render
-   ├─ walls from generatedMaze
+   ├─ wall segments from generatedMaze
    ├─ cats filtered by collectedCats
    └─ ExitBeacon at exit coords
 ```

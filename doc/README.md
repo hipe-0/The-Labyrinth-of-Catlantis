@@ -144,7 +144,8 @@ The-Labyrinth-of-Catlantis/
 │   │   ├── audioEngine.js        # procedural start/step/wind/beacon/meow sounds
 │   │   ├── collision.js         # circle-vs-AABB collision + wall sliding
 │   │   ├── fractal.js           # fractal mountain-ring generator
-│   │   ├── mazeGeneration.js    # maze carving, rooms, cat placement
+│   │   ├── mazeGeneration.js    # edge-wall maze carving, rooms, cat placement
+│   │   ├── mazeWalls.js         # unique/merged wall segments for render + collision
 │   │   ├── movementController.js# keyboard, collision, rotation, jump
 │   │   ├── rocket.js            # collected-cat fly-up curve
 │   │   └── takeoff.js           # level-complete fly-up camera math

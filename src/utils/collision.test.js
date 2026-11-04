@@ -4,6 +4,13 @@ import {
   createMazeCollisionWorld,
   moveCircle,
 } from './collision';
+import {
+  createEmptyMaze,
+  removeWall,
+  WALL_EAST,
+  WALL_WEST,
+} from './mazeGeneration';
+import { GAME_CONFIG } from '../config/gameConfig';
 
 const RADIUS = 0.2;
 const openRoomMaze = [
@@ -51,6 +58,23 @@ describe('circle collision', () => {
     const resolved = world.resolvePenetration(2, 2, RADIUS);
 
     expect(world.overlapsCircle(resolved.x, resolved.z, RADIUS)).toBe(false);
+  });
+
+  it('collides with thin edge walls', () => {
+    const maze = createEmptyMaze(5, 5);
+    removeWall(maze[2][2], WALL_EAST);
+    removeWall(maze[2][3], WALL_WEST);
+
+    const world = createMazeCollisionWorld(maze);
+    const result = moveCircle(world, 2, 2, 5, 0, RADIUS);
+    const expectedX =
+      3.5 - GAME_CONFIG.WALL.THICKNESS / 2 - RADIUS;
+
+    expect(result.blockedX).toBe(true);
+    expect(result.x).toBeGreaterThan(3.19);
+    expect(result.x).toBeLessThanOrEqual(expectedX + 1e-6);
+    expect(result.z).toBeCloseTo(2, 6);
+    expect(world.overlapsCircle(result.x, result.z, RADIUS)).toBe(false);
   });
 
   it('never penetrates a wall during a long random walk', () => {

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 import { generateMaze, getStartRotation } from './utils/mazeGeneration';
 import { createMovementController } from './utils/movementController';
+import { getMazeWallSegments } from './utils/mazeWalls';
 import { getTakeoffPose } from './utils/takeoff';
 import { GAME_CONFIG } from './config/gameConfig';
 import { CuteCat } from './components/CuteCat';
@@ -24,7 +25,7 @@ const TOUCH_KEY_MAP = {
 };
 
 const MAZE_CENTER = (GAME_CONFIG.MAZE_WIDTH - 1) / 2;
-const { SHADOW, PLAYER, CAMERA, LEVEL } = GAME_CONFIG;
+const { SHADOW, PLAYER, CAMERA, LEVEL, WALL } = GAME_CONFIG;
 
 export function MazeScene({
   isGameStarted,
@@ -96,15 +97,6 @@ export function MazeScene({
     );
   }, [generatedMaze, cats, audio]);
 
-  // Wall height/width variations must stay fixed for a given maze. Computing
-  // Math.random() during render makes every touch press re-roll the walls.
-  const wallVariations = useMemo(() => (
-    generatedMaze.map((row) => row.map(() => ({
-      horizontal: Math.random() < 0.1 ? Math.random() * 0.3 + 0.85 : 1,
-      vertical: Math.random() < 0.2 ? Math.random() * 2.5 + 0.5 : 1,
-    })))
-  ), [generatedMaze]);
-
   // The moonlight aims at the shadow focus, which follows the player. The
   // light position is shifted by the same offset in the frame loop, so the
   // moonlight direction stays constant while the shadow zone moves.
@@ -124,7 +116,10 @@ export function MazeScene({
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = 1;
     gl.outputColorSpace = THREE.SRGBColorSpace;
-  }, [gl]);
+    // Yaw first, then pitch around the local X axis. This keeps negative pitch
+    // pointing down regardless of which way the player is facing.
+    camera.rotation.order = 'YXZ';
+  }, [camera, gl]);
 
   useEffect(() => {
     gl.shadowMap.needsUpdate = true;
@@ -190,40 +185,40 @@ export function MazeScene({
            player.collectedCats.size === cats.length;
   }, [exitX, exitY, cats.length]);
 
-  // Build the wall elements once per maze. React can reuse the same element
-  // tree when cats or the sky change, avoiding a new BoxGeometry per wall.
+  // Build one thin box per unique cell-edge wall. The same segment list feeds
+  // the collision world, so the visible walls and collision always agree.
   const wallElements = useMemo(() => (
-    generatedMaze.map((row, z) =>
-      row.map((cell, x) => {
-        if (cell === 1) {
-          const { horizontal: horizontalScaleX, vertical: verticalScale } =
-            wallVariations[z][x];
+    getMazeWallSegments(generatedMaze).map((segment) => {
+      const width = segment.maxX - segment.minX;
+      const depth = segment.maxZ - segment.minZ;
+      const centerX = (segment.minX + segment.maxX) / 2;
+      const centerZ = (segment.minZ + segment.maxZ) / 2;
 
-          return (
-            <group key={`${x}-${z}`} position={[x, verticalScale / 2, z]}>
-              <mesh
-                scale={[horizontalScaleX, verticalScale, 1]}
-                castShadow
-                receiveShadow
-              >
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial
-                  color="#FFFFFF"
-                  metalness={0}
-                  roughness={0.5}
-                />
-              </mesh>
-              <lineSegments scale={[horizontalScaleX, verticalScale, 1]}>
-                <edgesGeometry args={[new THREE.BoxGeometry(1, 1, 1)]} />
-                <lineBasicMaterial color="white" linewidth={2} />
-              </lineSegments>
-            </group>
-          );
-        }
-        return null;
-      })
-    )
-  ), [generatedMaze, wallVariations]);
+      return (
+        <group
+          key={segment.key}
+          position={[centerX, WALL.HEIGHT / 2, centerZ]}
+        >
+          <mesh
+            scale={[width, WALL.HEIGHT, depth]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial
+              color="#FFFFFF"
+              metalness={0}
+              roughness={0.5}
+            />
+          </mesh>
+          <lineSegments scale={[width, WALL.HEIGHT, depth]}>
+            <edgesGeometry args={[new THREE.BoxGeometry(1, 1, 1)]} />
+            <lineBasicMaterial color="white" linewidth={2} />
+          </lineSegments>
+        </group>
+      );
+    })
+  ), [generatedMaze]);
 
   const beginTakeoff = () => {
     const player = playerRef.current;

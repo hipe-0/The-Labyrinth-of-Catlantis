@@ -44,6 +44,13 @@ export const GAME_CONFIG = {
     MAX_LAG: 0.12, // Maximum distance between camera and player centre
   },
 
+  // Wall geometry. Edge-based mazes place thin panels on cell boundaries
+  // instead of filling whole cells with blocks.
+  WALL: {
+    THICKNESS: 0.12,
+    HEIGHT: 1,
+  },
+
   // Cat pickup reward animation
   CAT_ROCKET: {
     DELAY: 0.25, // Short crouch before the launch

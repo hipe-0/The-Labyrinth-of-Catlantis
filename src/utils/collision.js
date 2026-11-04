@@ -4,6 +4,8 @@
 // as axis-aligned boxes in a spatial hash, so the per-substep cost stays low as
 // the maze gains more objects.
 
+import { getMazeWallSegments } from './mazeWalls';
+
 const EPSILON = 1e-6;
 const BUCKET_SIZE = 1;
 
@@ -246,15 +248,31 @@ export const createMazeCollisionWorld = (maze) => {
     return world;
   }
 
-  for (let z = 0; z < height; z += 1) {
-    for (let x = 0; x < width; x += 1) {
-      if (maze[z][x] === 1) {
-        world.addBox({
-          minX: x - 0.5,
-          minZ: z - 0.5,
-          maxX: x + 0.5,
-          maxZ: z + 0.5,
-        });
+  const edgeBased =
+    maze[0]?.[0] &&
+    typeof maze[0][0] === 'object' &&
+    maze[0][0].walls !== undefined;
+
+  if (edgeBased) {
+    getMazeWallSegments(maze).forEach((segment) => {
+      world.addBox({
+        minX: segment.minX,
+        minZ: segment.minZ,
+        maxX: segment.maxX,
+        maxZ: segment.maxZ,
+      });
+    });
+  } else {
+    for (let z = 0; z < height; z += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (maze[z][x] === 1) {
+          world.addBox({
+            minX: x - 0.5,
+            minZ: z - 0.5,
+            maxX: x + 0.5,
+            maxZ: z + 0.5,
+          });
+        }
       }
     }
   }

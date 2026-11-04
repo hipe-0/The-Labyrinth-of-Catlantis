@@ -1,5 +1,12 @@
 import { createMovementController } from './movementController';
-import { generateMaze } from './mazeGeneration';
+import {
+  generateMaze,
+  hasWall,
+  WALL_EAST,
+  WALL_NORTH,
+  WALL_SOUTH,
+  WALL_WEST,
+} from './mazeGeneration';
 
 const createPlayer = () => ({
   x: 1,
@@ -172,10 +179,10 @@ describe('movementController collision and pickups', () => {
     );
 
     const neighbours = [
-      { dx: 0, dz: -1 },
-      { dx: 0, dz: 1 },
-      { dx: -1, dz: 0 },
-      { dx: 1, dz: 0 },
+      { dx: 0, dz: -1, wall: WALL_NORTH },
+      { dx: 0, dz: 1, wall: WALL_SOUTH },
+      { dx: -1, dz: 0, wall: WALL_WEST },
+      { dx: 1, dz: 0, wall: WALL_EAST },
     ];
     const keyOf = (x, z) => `${x},${z}`;
     const queue = [{ x: 1, z: 1, path: [] }];
@@ -190,12 +197,13 @@ describe('movementController collision and pickups', () => {
         break;
       }
 
-      for (const { dx, dz } of neighbours) {
+      for (const { dx, dz, wall } of neighbours) {
         const x = current.x + dx;
         const z = current.z + dz;
 
         if (
-          maze[z]?.[x] !== 1 &&
+          maze[z]?.[x] &&
+          !hasWall(maze[current.z][current.x], wall) &&
           !visited.has(keyOf(x, z))
         ) {
           visited.add(keyOf(x, z));
