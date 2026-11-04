@@ -110,7 +110,7 @@ reference to re-render. They are kept in sync in `movementController.js`.
 
 3. audio.update(...)
    ├── wind gain and footsteps follow the distance actually travelled
-   ├── periodic beacon ping, panned toward the exit
+   ├── a soft bell rings only when the exit is within BEACON_RANGE
    └── no sound when walking into a wall
 
 4. camera follows the circle centre with clamped exponential smoothing

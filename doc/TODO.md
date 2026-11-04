@@ -13,9 +13,9 @@ requirements.
 4. [x] Add three low-poly mountain rings around the maze. Radii 40 / 55 / 70,
    white ridge lines on black faces, as reviewed in
    `doc/mockups/horizon-silhouette.png`.
-5. [x] Add procedural sounds: footsteps, speed-dependent wind, a directional
-   exit-beacon ping, cat meows, a start chime, and a level-complete arpeggio.
-   No audio assets are needed; see `src/utils/audioEngine.js`.
+5. [x] Add procedural sounds: footsteps, speed-dependent wind, a near-exit beacon
+   bell, cat meows, a start chime, and a level-complete arpeggio. No audio assets are
+   needed; see `src/utils/audioEngine.js`.
 6. [x] Replace destination-cell collision with a 2D player circle. The circle
    can never overlap a wall, slides along walls, and the camera follows it with
    a short clamped delay. Collision boxes live in a spatial hash so future props

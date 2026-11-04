@@ -48,7 +48,9 @@ export const GAME_CONFIG = {
     MASTER_VOLUME: 0.45,
     WIND_MAX_VOLUME: 0.075,
     FOOTSTEP_VOLUME: 0.09,
-    BEACON_INTERVAL: 2.4, // Seconds between beacon pings
+    BEACON_INTERVAL: 5, // Seconds between beacon bells
+    BEACON_RANGE: 18, // Only ring when the exit is reasonably close
+    BEACON_VOLUME: 0.08,
   },
   
   // Shadows

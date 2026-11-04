@@ -199,7 +199,8 @@ GAME_CONFIG = {
   GRAVITY: 9.8,
   PLAYER: { RADIUS, WALK_SPEED, CAT_PICKUP_RADIUS, EXIT_REACH_RADIUS },
   CAMERA: { FOLLOW_SMOOTHING, MAX_LAG },
-  AUDIO: { MASTER_VOLUME, WIND_MAX_VOLUME, FOOTSTEP_VOLUME, BEACON_INTERVAL },
+  AUDIO: { MASTER_VOLUME, WIND_MAX_VOLUME, FOOTSTEP_VOLUME, BEACON_INTERVAL,
+           BEACON_RANGE, BEACON_VOLUME },
   SHADOW: { ZONE_HALF_SIZE, MAP_SIZE, IDLE_UPDATE_INTERVAL, MOVE_THRESHOLD },
   HORIZON: { RINGS, INITIAL_POINTS, INITIAL_JITTER, PASSES, AMPLITUDE, ROUGHNESS,
              TOP_BAND_HEIGHT },
@@ -268,8 +269,8 @@ and the beacon interval.
 - `meow()` — pitch-bent sawtooth through a band-pass formant.
 - `levelComplete()` — four-note arpeggio.
 - `update({ moving, speed, x, z, rotation, exitX, exitY }, delta)` — speed-dependent
-  wind, alternating footsteps timed by actual travel distance, and a periodic beacon
-  ping panned toward the exit.
+  wind, alternating footsteps timed by actual travel distance, and a soft beacon bell
+  when the exit is within `AUDIO.BEACON_RANGE`, panned toward it.
 - `dispose()` — closes the context when the app unmounts.
 
 If `window.AudioContext` is unavailable, every method is a safe no-op.

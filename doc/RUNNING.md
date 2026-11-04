@@ -179,8 +179,8 @@ folder is from an older build; regenerate it before deploying.
   walking, then at 5 Hz while standing still
 - Movement uses fixed `1/144 s` substeps; simulated speed is **3.6 units/s** at 30, 60,
   90, 120, 144, and 240 Hz. The player is a 0.2-unit circle and slides along wall boxes.
-- Audio is procedural: footsteps follow actual travel, wind follows speed, the beacon
-  pings periodically with stereo direction, and cats meow on pickup.
+- Audio is procedural: footsteps follow actual travel, wind follows speed, a soft bell
+  rings only near the exit with stereo direction, and cats meow on pickup.
 - Floor receives and casts shadows; the follow-player shadow map is `2048²` over a
   20×20 world-unit area
 - Wall scale variations were verified stable across touch-triggered re-renders

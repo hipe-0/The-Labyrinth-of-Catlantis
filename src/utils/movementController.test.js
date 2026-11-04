@@ -124,6 +124,15 @@ describe('movementController collision and pickups', () => {
     expect(setCollectedCats).toHaveBeenCalled();
     expect(setSkyIndex).toHaveBeenLastCalledWith(1);
     expect(onCatCollected).toHaveBeenCalledWith(0);
+
+    // Staying near an already-collected cat must not replay the meow forever.
+    controller.handleKeyUp({ key: 'ArrowUp' });
+
+    for (let frame = 0; frame < 60; frame += 1) {
+      controller.updatePlayerMovement(player, 1 / 60);
+    }
+
+    expect(onCatCollected).toHaveBeenCalledTimes(1);
   });
 
   it('can follow a corridor path through a generated maze', () => {

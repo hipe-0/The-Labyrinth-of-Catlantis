@@ -188,25 +188,34 @@ export function createAudioEngine() {
   };
 
   const beaconPing = (pan, proximity) => {
-    const volume = 0.018 + 0.1 * proximity * proximity;
+    const volume = 0.012 + AUDIO.BEACON_VOLUME * proximity * proximity;
 
+    // Soft bell chord with no downward pitch glide, so it reads as a beacon
+    // rather than a cat meow.
     playTone({
-      frequency: 880,
-      endFrequency: 660,
+      frequency: 659.25,
       type: 'sine',
-      duration: 0.55,
+      duration: 1.1,
       volume,
       pan,
+      attack: 0.03,
+    });
+    playTone({
+      frequency: 987.77,
+      type: 'sine',
+      duration: 0.9,
+      volume: volume * 0.3,
+      pan,
+      when: 0.01,
       attack: 0.02,
     });
     playTone({
-      frequency: 1320,
-      endFrequency: 990,
+      frequency: 329.63,
       type: 'sine',
-      duration: 0.45,
-      volume: volume * 0.35,
+      duration: 1.3,
+      volume: volume * 0.25,
       pan,
-      when: 0.03,
+      attack: 0.05,
     });
   };
 
@@ -342,9 +351,12 @@ export function createAudioEngine() {
           dx * Math.cos(state.rotation || 0) -
           dz * Math.sin(state.rotation || 0);
         const pan = distance > 0.001 ? clamp(right / distance, -1, 1) : 0;
-        const proximity = clamp(1 - distance / 55, 0, 1);
+        const proximity = clamp(1 - distance / AUDIO.BEACON_RANGE, 0, 1);
 
-        beaconPing(pan, proximity);
+        if (distance <= AUDIO.BEACON_RANGE) {
+          beaconPing(pan, proximity);
+        }
+
         beaconTimer = AUDIO.BEACON_INTERVAL;
       }
     }
