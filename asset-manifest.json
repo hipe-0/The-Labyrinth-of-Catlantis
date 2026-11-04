@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/The-Labyrinth-of-Catlantis/static/css/main.675ca666.css",
+    "main.js": "/The-Labyrinth-of-Catlantis/static/js/main.cd062330.js",
+    "index.html": "/The-Labyrinth-of-Catlantis/index.html",
+    "main.675ca666.css.map": "/The-Labyrinth-of-Catlantis/static/css/main.675ca666.css.map",
+    "main.cd062330.js.map": "/The-Labyrinth-of-Catlantis/static/js/main.cd062330.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.675ca666.css",
+    "static/js/main.cd062330.js"
+  ]
+}
