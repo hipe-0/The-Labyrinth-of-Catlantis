@@ -155,9 +155,10 @@ folder is from an older build; regenerate it before deploying.
 ## Environment notes for this copy
 
 - Working directory: `C:\Users\mouni\Desktop\2026-03-26 Maze game - The-Labyrinth-of-Catlantis`
-- Branch: `Touch-control` — local only, **no upstream and not present on GitHub**
+- Branch: `Touch-control` — tracks `origin/Touch-control` (pushed 2026-11-04)
 - HEAD: see `git log`; all game work is committed on `Touch-control` (ahead of
   `origin/main` at `258f564`)
+
 - Working tree: clean after the 2026-11-04 commit
 - `npm run build` was verified successfully while writing this documentation
   (compiled with warnings only about old Browserslist data)
@@ -189,19 +190,20 @@ folder is from an older build; regenerate it before deploying.
 - Wall scale variations were verified stable across touch-triggered re-renders
 - `build/` and `node_modules/` are generated/ignored
 
-### Git remote status (verified 2026-11-02)
+### Git remote status (verified 2026-11-04)
 
 | Ref | Commit | Status |
 | --- | --- | --- |
-| `origin/main` | `258f564` | Remote default branch; matches local `Touch-control` HEAD |
-| `origin/gh-pages` | `1f41a2c` | Deployed build from 2025-04-01; live site serves this |
+| `origin/main` | `258f564` | Remote default branch; unchanged |
+| `origin/gh-pages` | `af242d4` | Deployed 2026-11-04 from the `Touch-control` build (`main.d1bbc525.js`); live site serves this |
 | local `main` | `32fb27f` | **Ahead 1**, unpushed: "shading trial, not working" |
-| local `Touch-control` | current HEAD | No upstream; all game work committed |
+| local `Touch-control` = `origin/Touch-control` | current HEAD | Pushed with upstream on 2026-11-04 |
 | `add-smooth-keyboard-controls` | `e332a55` | Local only, 2 commits not on any remote |
 | `Experimental-Shading-trial,-to-continue-later` | `32fb27f` | Local only, same experimental commit as `main` |
 | `split-files` | `7d24b4c` | Local only, already merged into `origin/main` |
 
-The remote has only `main` and `gh-pages`; `Touch-control` does not exist there.
+The remote has `main`, `gh-pages`, and `Touch-control`.
+
 
 Other repository observations:
 
@@ -210,5 +212,7 @@ Other repository observations:
   19 low), almost entirely transitive dependencies of the CRA 5 build toolchain.
   The critical packages are `form-data`, `proxy-addr`, `shell-quote`, and
   `websocket-driver`; they are build/dev-server dependencies, not app runtime code.
-- The live site returns HTTP 200 but is built from `gh-pages` at `1f41a2c`
-  (2025-04-01) and still has the `<title>React App</title>` placeholder.
+- The live site serves `gh-pages` at `af242d4` (deployed 2026-11-04): title
+  "The Labyrinth of Catlantis", bundle `main.d1bbc525.js`. Verified in a real browser —
+  the start screen renders and starting the game shows the first-person edge-wall maze
+  with no console errors.

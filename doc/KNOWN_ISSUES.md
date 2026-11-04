@@ -13,6 +13,9 @@ have now been corrected in the working tree.
 > Verified 2026-11-02: `origin/main` at `258f564` still has the correct cat wrapper,
 > `ExitBeacon` props, and rounded exit check. The live site is built from the
 > `gh-pages` branch at `1f41a2c`, which is based on the same `main` baseline.
+>
+> Update 2026-11-04: `gh-pages` was redeployed at `af242d4` from the `Touch-control`
+> tree, so the live site now serves the current game.
 
 ---
 

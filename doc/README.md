@@ -14,8 +14,8 @@ run it, and which parts are currently unfinished or broken.
 | --- | --- |
 | Project name | `maze-three-project` |
 | Live demo | <https://hipe-0.github.io/The-Labyrinth-of-Catlantis/> |
-| Latest work | 2026-11-04 — circle collision, procedural audio, level fly-up/splash |
-| Current branch | `Touch-control` — local branch |
+| Latest work | 2026-11-04 — edge-wall mazes, cat rockets, removed backward input; live site redeployed |
+| Current branch | `Touch-control` — pushed and tracking `origin/Touch-control` |
 | Main stack | React 19, Create React App 5, Three.js 0.174, React Three Fiber 9 |
 | Entry point | `src/index.js` → `src/App.js` → `src/MazeScene.js` |
 | Maze size | 31 × 31 cells |
@@ -29,25 +29,27 @@ run it, and which parts are currently unfinished or broken.
 
 ## Is it development-ready?
 
-**The toolchain is ready; the repository and current code are not.**
+**Yes for solo use, with caveats.** The web toolchain, tests, and live deployment are
+ready; the remaining caveats are device testing, the outdated CRA toolchain (many
+transitive `npm audit` warnings), and the absence of CI and a license.
 
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local toolchain | Ready | Node 24.18 / npm 11.16 installed, dependencies resolve, `npm start` compiles and serves HTTP 200, `npm run build` succeeds |
-| Git working tree | Ready | Work is committed on `Touch-control`; branch still needs an upstream/push |
+| Git working tree | Ready | All work committed on `Touch-control`; pushed and tracking `origin/Touch-control` (2026-11-04) |
 | Game code | Playable, needs device testing | Touch input, timing, cats/exit, lighting, shadows, horizon, sky, circle collision, procedural audio, and the level fly-up/splash are implemented; remaining feature work is in [TODO.md](TODO.md) |
 | Tests / CI | Partial | Jest tests for start keys, spawn orientation, fractal rings, rotation, circle collision/sliding, cat pickup, and the audio fallback; no CI workflow or license |
-| Published site | Stale | `gh-pages` and the live site predate the recent work |
+| Published site | Current | `gh-pages` redeployed 2026-11-04 from the `Touch-control` build; live title and bundle verified |
 
-See [RUNNING.md](RUNNING.md#git-remote-status-verified-2026-11-02) for the verified
+See [RUNNING.md](RUNNING.md#git-remote-status-verified-2026-11-04) for the verified
 remote/branch table.
 
 Before treating the folder as a clean hand-off:
 
 1. Test the touch fixes on a real phone (movement, turning, jump, bottom controls).
-2. Push `Touch-control` with an upstream.
+2. ~~Push `Touch-control` with an upstream.~~ Done 2026-11-04.
 3. Add a CI workflow and finish the remaining [TODO.md](TODO.md) items.
-4. Rebuild and redeploy `gh-pages` after the fixes.
+4. ~~Rebuild and redeploy `gh-pages` after the fixes.~~ Done 2026-11-04.
 
 ---
 
