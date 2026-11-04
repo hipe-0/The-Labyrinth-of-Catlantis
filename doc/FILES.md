@@ -205,6 +205,7 @@ GAME_CONFIG = {
   GRAVITY: 9.8,
   PLAYER: { RADIUS, WALK_SPEED, CAT_PICKUP_RADIUS, EXIT_REACH_RADIUS },
   CAMERA: { EYE_HEIGHT, FOLLOW_SMOOTHING, MAX_LAG },
+  CAT_ROCKET: { DELAY, DURATION, HEIGHT, SPIN_SPEED, END_SCALE },
   LEVEL: { TAKEOFF_DURATION, TAKEOFF_HEIGHT, TAKEOFF_PITCH, COMPLETE_TITLE,
            START_BUTTON },
   AUDIO: { MASTER_VOLUME, WIND_MAX_VOLUME, FOOTSTEP_VOLUME, BEACON_INTERVAL,
@@ -316,6 +317,14 @@ Pure camera math for the level-complete fly-up.
   pitch, startHeight })` — returns the fixed X/Z, rising Y, eased pitch, and yaw turning
   toward the maze centre. Used by `MazeScene` and covered by `takeoff.test.js`.
 
+### `src/utils/rocket.js`
+
+Pure motion curve for a collected cat's trip into the sky.
+
+- `getCatRocketPose({ elapsed, delay, duration, height, spinSpeed, endScale })` —
+  waits for the short crouch, then accelerates upward on a `t²` curve, spins, and
+  shrinks to `endScale`. Covered by `rocket.test.js`.
+
 ### `src/components/StartScreen.js`
 
 Full-screen DOM overlay, reused for the initial start screen and the level-complete
@@ -360,6 +369,16 @@ Props: `color` (palette key, default `'white'`). It returns a bare `<group>` and
 **not** forward `position` or `receiveShadow`, so callers must wrap it in a positioned
 group. `MazeScene` does this and places cats at `[cat.x, 0, cat.y]` with
 `color={cat.color}`.
+
+### `src/components/RocketCat.js`
+
+Wraps `<CuteCat>` in a group and animates it after pickup.
+
+- Props: `x`, `z`, `color`, `onComplete`.
+- `useFrame` accumulates elapsed time, calls `getCatRocketPose`, sets Y/spin/scale, and
+  calls `onComplete` after `CAT_ROCKET.DURATION`.
+- `MazeScene` keeps a `departingCats` list so the normal cat hides immediately while the
+  rocket version is still visible.
 
 ### `src/components/ExitBeacon.js`
 
@@ -449,7 +468,8 @@ Kept as boilerplate.
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
 spawn orientation, fractal ring generation, continuous hold rotation, circle collision
-and wall sliding, cat pickup, the silent audio fallback, and the takeoff camera math.
+and wall sliding, cat pickup, the silent audio fallback, takeoff camera math, and the
+cat-rocket curve.
 
 ---
 
@@ -484,7 +504,12 @@ index.js
 │       │   ├── utils/collision.js
 │       │   └── config/gameConfig.js
 │       ├── utils/takeoff.js
+│       ├── utils/rocket.js
 │       ├── components/CuteCat.js
+│       │   └── config/gameConfig.js
+│       ├── components/RocketCat.js
+│       │   ├── components/CuteCat.js
+│       │   ├── utils/rocket.js
 │       │   └── config/gameConfig.js
 │       ├── components/StarField.js
 │       │   └── config/gameConfig.js

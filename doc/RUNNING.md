@@ -181,6 +181,7 @@ folder is from an older build; regenerate it before deploying.
   90, 120, 144, and 240 Hz. The player is a 0.2-unit circle and slides along wall boxes.
 - Audio is procedural: footsteps follow actual travel, wind follows speed, a soft bell
   rings only near the exit with stereo direction, and cats meow on pickup.
+- Collected cats rocket into the sky over 2.4 s while the sky palette lerps.
 - Reaching the exit with all six cats flies the camera 30 units up over 5 seconds,
   tilts it down toward the maze centre, and shows the next-labyrinth splash.
 - Floor receives and casts shadows; the follow-player shadow map is `2048²` over a

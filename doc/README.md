@@ -95,10 +95,11 @@ Pages `homepage`, CRA serves the app under
 | Space | Jump |
 | Touch controls | ← / ↑ / → D-pad + Jump button after the first touch |
 
-Goal: collect all 6 cats, then reach the exit beacon in the far corner. Collecting cats
-advances a smooth gradient sky palette (blue, green, purple, yellow, rose, teal).
-Reaching the exit with all 6 cats starts a slow camera fly-up over the maze; a splash
-screen then announces the next labyrinth, and Start generates a brand-new maze.
+Goal: collect all 6 cats, then reach the exit beacon in the far corner. Each collected
+cat meows and rockets into the sky while the gradient sky palette shifts smoothly
+(blue, green, purple, yellow, rose, teal). Reaching the exit with all 6 cats starts a
+slow camera fly-up over the maze; a splash screen then announces the next labyrinth,
+and Start generates a brand-new maze.
 
 ---
 
@@ -148,12 +149,14 @@ The-Labyrinth-of-Catlantis/
 │   │   ├── fractal.js           # fractal mountain-ring generator
 │   │   ├── mazeGeneration.js    # maze carving, rooms, cat placement
 │   │   ├── movementController.js# keyboard, collision, rotation, jump
+│   │   ├── rocket.js            # collected-cat fly-up curve
 │   │   └── takeoff.js           # level-complete fly-up camera math
 │   │
 │   └── components/
 │       ├── StartScreen.js  # title screen and Start button
 │       ├── TouchControls.js# on-screen D-pad + Jump button
 │       ├── CuteCat.js      # low-poly cat built from primitives
+│       ├── RocketCat.js    # collected-cat launch animation
 │       ├── ExitBeacon.js   # green cube + vertical light beam
 │       ├── Floor.js        # ground plane; receives/casts shadows
 │       ├── HorizonMountains.js # three decorative fractal rings

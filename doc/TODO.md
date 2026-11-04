@@ -27,9 +27,9 @@ requirements.
 8. [ ] Clean out remaining prototype code and stale ideas. (Partly done:
    CRA leftovers and the old movement model are gone; still review unused
    dependencies, deploy script, and docs.)
-9. [ ] Cats rocket into the sky with a meow when found. Sky colours are already
-   gradient palettes and the meow is implemented; the take-off animation is
-   still open. Palette review image: `doc/mockups/sky-gradients.png`.
+9. [x] Cats rocket into the sky with a meow when found. The sky colour lerps
+   smoothly through the gradient palettes; the cat rises for 2.4 s, spins, and
+   shrinks. Palette review image: `doc/mockups/sky-gradients.png`.
 10. [x] Spawn facing an open neighbour instead of a wall.
 11. [ ] Move from "wall block / empty floor" cells to edge-based cells (north
     wall, west wall, or both). Generate that kind of maze and update collision.

@@ -67,6 +67,7 @@ splash screen; pressing Start on the splash generates the next maze in place.
 | `mazeData` | `MazeScene` | state | `{ maze, exitX, exitY, cats }` for the current level |
 | `level` | `MazeScene` | number | Current level, incremented when the next maze starts |
 | `collectedCats` | `MazeScene` | `Set<number>` | Indices of collected cats; drives cat visibility |
+| `departingCats` | `MazeScene` | array | Collected cats currently playing the rocket animation |
 | `skyIndex` | `MazeScene` | number | Palette index for `SkyGradient`; advances with cats |
 | `movementController` | `MazeScene` | memo | Closure over the current maze/cats with key handlers and the movement update |
 
@@ -298,9 +299,18 @@ If found and not already collected:
 1. Copy `player.collectedCats`, add the index, store it back.
 2. Call `setCollectedCats(newSet)` so React hides that cat.
 3. Call `setSkyIndex(newCollectedCats.size)` to advance the sky palette.
-4. Call the optional `onCatCollected` callback, which plays the meow.
+4. Call the optional `onCatCollected` callback, which plays the meow and adds the cat
+   to `departingCats`.
 
 Forward movement checks for cats every substep.
+
+### Cat rocket
+
+The normal cat is hidden as soon as it is collected, but a `RocketCat` copy is rendered
+from the `departingCats` list. It waits for `CAT_ROCKET.DELAY`, then rises to
+`CAT_ROCKET.HEIGHT` over `CAT_ROCKET.DURATION` with a `t²` acceleration, spins, and
+shrinks to `CAT_ROCKET.END_SCALE`. When the animation ends it removes itself from the
+list. `src/utils/rocket.js` contains the pure motion curve.
 
 ### Sky palettes
 

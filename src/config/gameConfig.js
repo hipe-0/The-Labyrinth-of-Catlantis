@@ -44,6 +44,15 @@ export const GAME_CONFIG = {
     MAX_LAG: 0.12, // Maximum distance between camera and player centre
   },
 
+  // Cat pickup reward animation
+  CAT_ROCKET: {
+    DELAY: 0.25, // Short crouch before the launch
+    DURATION: 2.4, // Seconds from pickup to disappearing in the sky
+    HEIGHT: 50, // World units climbed
+    SPIN_SPEED: 5, // Radians per second
+    END_SCALE: 0.08,
+  },
+
   // Level-complete fly-up and the splash screen that follows it.
   LEVEL: {
     TAKEOFF_DURATION: 5, // Seconds for the camera to rise and tilt down

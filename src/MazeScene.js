@@ -8,6 +8,7 @@ import { createMovementController } from './utils/movementController';
 import { getTakeoffPose } from './utils/takeoff';
 import { GAME_CONFIG } from './config/gameConfig';
 import { CuteCat } from './components/CuteCat';
+import { RocketCat } from './components/RocketCat';
 import { StarField } from './components/StarField';
 import { SkyGradient } from './components/SkyGradient';
 import { Moon } from './components/Moon';
@@ -63,6 +64,7 @@ export function MazeScene({
   });
 
   const [collectedCats, setCollectedCats] = useState(new Set());
+  const [departingCats, setDepartingCats] = useState([]);
   const [skyIndex, setSkyIndex] = useState(0);
 
   const movementController = useMemo(() => {
@@ -72,7 +74,25 @@ export function MazeScene({
       setCollectedCats,
       setSkyIndex,
       cats,
-      () => audio?.meow()
+      (catIndex) => {
+        audio?.meow();
+
+        const cat = cats[catIndex];
+
+        if (!cat) {
+          return;
+        }
+
+        setDepartingCats((current) => [
+          ...current,
+          {
+            index: catIndex,
+            x: cat.x,
+            z: cat.y,
+            color: cat.color,
+          },
+        ]);
+      }
     );
   }, [generatedMaze, cats, audio]);
 
@@ -150,6 +170,7 @@ export function MazeScene({
     player.collectedCats = new Set();
 
     setCollectedCats(new Set());
+    setDepartingCats([]);
     setSkyIndex(0);
 
     phaseRef.current = 'playing';
@@ -404,6 +425,19 @@ export function MazeScene({
           </group>
         )
       )}
+      {departingCats.map((cat) => (
+        <RocketCat
+          key={`rocket-${cat.index}`}
+          x={cat.x}
+          z={cat.z}
+          color={cat.color}
+          onComplete={() =>
+            setDepartingCats((current) =>
+              current.filter((item) => item.index !== cat.index)
+            )
+          }
+        />
+      ))}
 
       {wallElements}
     </>
