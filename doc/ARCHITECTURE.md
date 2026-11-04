@@ -202,12 +202,13 @@ File: `src/utils/movementController.js`
 
 ### Input
 
-`handleKeyDown` / `handleKeyUp` maintain a `keyState` object for the four arrow keys.
-Space is handled immediately: if not already jumping, set
+`handleKeyDown` / `handleKeyUp` maintain a `keyState` object for the three active arrow
+keys. Space is handled immediately: if not already jumping, set
 `jumpVelocity = JUMP_VELOCITY` and `jumpHeight = 0`.
 
-The controller only understands `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, and
-`' '` (space). The touch layer maps its four directions to those arrow keys.
+The controller only understands `ArrowUp`, `ArrowLeft`, `ArrowRight`, and `' '`
+(space). The touch layer maps its three directions to those arrow keys. `ArrowDown` is
+intentionally ignored; walking backward was removed to free portrait screen space.
 
 ### Fixed timestep
 
@@ -217,7 +218,7 @@ fills an accumulator; each substep moves the player circle by
 collects any nearby cat. This keeps the speed identical on 60 Hz and 144 Hz displays.
 The accumulator is capped at 15 substeps to avoid a spiral of death after a stall.
 
-### Forward/backward
+### Forward
 
 The forward vector depends on `rotation`:
 
@@ -228,9 +229,9 @@ forwardZ = -Math.cos(rotation)
 
 - At `rotation = 0`, forward is `-Z` (north).
 - At `rotation = -π/2`, forward is `+X` (east).
-- Backward is the negation.
 
-Movement is continuous: holding a key moves at `WALK_SPEED` every substep.
+Movement is continuous: holding `ArrowUp`/the touch forward button moves at
+`WALK_SPEED` every substep. There is no backward command.
 
 ### Collision
 
@@ -299,7 +300,7 @@ If found and not already collected:
 3. Call `setSkyIndex(newCollectedCats.size)` to advance the sky palette.
 4. Call the optional `onCatCollected` callback, which plays the meow.
 
-Forward and backward movement both collect cats.
+Forward movement checks for cats every substep.
 
 ### Sky palettes
 

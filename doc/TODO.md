@@ -35,5 +35,5 @@ requirements.
     wall, west wall, or both). Generate that kind of maze and update collision.
 12. [ ] Start the engine work needed for richer geometry later: roofs and window
     openings in walls. Make an initial proposal and keep collision extensible.
-13. [ ] Remove the backward command and the down/backward arrow to free space on
-    portrait mobile screens.
+13. [x] Remove the backward command and the down/backward arrow. The touch D-pad is
+    now a single row of ← / ↑ / →, freeing portrait screen space.

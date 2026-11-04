@@ -71,12 +71,12 @@ export function TouchControls({ onMove, onJump }) {
     pointerEvents: 'none',
   };
 
-  // Two rows, not three: the old three-row grid left an empty row below the
-  // buttons, which pushed the visible arrows up from the bottom edge.
+  // One row of three: forward in the middle, turn buttons on either side. The
+  // old two-row layout included backward, which was rarely useful on mobile.
   const arrowContainerStyle = {
     display: 'grid',
     gridTemplateColumns: `repeat(3, ${buttonSize})`,
-    gridTemplateRows: `repeat(2, ${buttonSize})`,
+    gridTemplateRows: buttonSize,
     gap,
     pointerEvents: 'none',
   };
@@ -112,10 +112,9 @@ export function TouchControls({ onMove, onJump }) {
   return (
     <div style={containerStyle}>
       <div style={arrowContainerStyle}>
+        {arrowButton('left', 'Turn left', '←', '1', '1')}
         {arrowButton('forward', 'Move forward', '↑', '2', '1')}
-        {arrowButton('left', 'Turn left', '←', '1', '2')}
-        {arrowButton('backward', 'Move backward', '↓', '2', '2')}
-        {arrowButton('right', 'Turn right', '→', '3', '2')}
+        {arrowButton('right', 'Turn right', '→', '3', '1')}
       </div>
 
       <button

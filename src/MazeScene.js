@@ -15,10 +15,9 @@ import { Floor } from './components/Floor';
 import { HorizonMountains } from './components/HorizonMountains';
 import { ExitBeacon } from './components/ExitBeacon';
 
-const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+const ARROW_KEYS = ['ArrowUp', 'ArrowLeft', 'ArrowRight'];
 const TOUCH_KEY_MAP = {
   forward: 'ArrowUp',
-  backward: 'ArrowDown',
   left: 'ArrowLeft',
   right: 'ArrowRight',
 };

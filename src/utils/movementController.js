@@ -25,7 +25,6 @@ export const createMovementController = (
 
   const keyState = {
     ArrowUp: false,
-    ArrowDown: false,
     ArrowLeft: false,
     ArrowRight: false
   };
@@ -41,9 +40,6 @@ export const createMovementController = (
     switch (event.key) {
       case 'ArrowUp':
         keyState.ArrowUp = true;
-        break;
-      case 'ArrowDown':
-        keyState.ArrowDown = true;
         break;
       case 'ArrowLeft':
         if (!keyState.ArrowLeft) {
@@ -77,9 +73,6 @@ export const createMovementController = (
     switch (event.key) {
       case 'ArrowUp':
         keyState.ArrowUp = false;
-        break;
-      case 'ArrowDown':
-        keyState.ArrowDown = false;
         break;
       case 'ArrowLeft':
         keyState.ArrowLeft = false;
@@ -118,14 +111,11 @@ export const createMovementController = (
   };
 
   const movePlayer = (player) => {
-    const direction =
-      (keyState.ArrowUp ? 1 : 0) - (keyState.ArrowDown ? 1 : 0);
-
-    if (direction === 0) {
+    if (!keyState.ArrowUp) {
       return;
     }
 
-    const distance = PLAYER.WALK_SPEED * MOVE_FIXED_STEP * direction;
+    const distance = PLAYER.WALK_SPEED * MOVE_FIXED_STEP;
     const dx = -Math.sin(player.rotation) * distance;
     const dz = -Math.cos(player.rotation) * distance;
     const previousX = player.x;

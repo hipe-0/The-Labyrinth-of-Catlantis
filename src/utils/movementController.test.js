@@ -94,6 +94,31 @@ describe('movementController collision and pickups', () => {
     expect(player.y).toBeCloseTo(3, 5);
   });
 
+  it('ignores backward input', () => {
+    const player = createPlayer();
+    player.x = 2;
+    player.y = 3;
+    player.rotation = -Math.PI / 2;
+    player.targetRotation = -Math.PI / 2;
+
+    const controller = createMovementController(
+      openRoomMaze,
+      { current: player },
+      jest.fn(),
+      jest.fn(),
+      []
+    );
+
+    controller.handleKeyDown({ key: 'ArrowDown' });
+
+    for (let frame = 0; frame < 60; frame += 1) {
+      controller.updatePlayerMovement(player, 1 / 60);
+    }
+
+    expect(player.x).toBeCloseTo(2, 6);
+    expect(player.y).toBeCloseTo(3, 6);
+  });
+
   it('collects a cat when the circle gets close enough', () => {
     const player = createPlayer();
     player.x = 1;

@@ -90,10 +90,10 @@ Pages `homepage`, CRA serves the app under
 
 | Input | Action |
 | --- | --- |
-| ↑ / ↓ | Walk forward / backward along the current facing |
+| ↑ | Walk forward along the current facing |
 | ← / → | Turn 45° left / right |
 | Space | Jump |
-| Touch controls | D-pad + Jump button after the first touch |
+| Touch controls | ← / ↑ / → D-pad + Jump button after the first touch |
 
 Goal: collect all 6 cats, then reach the exit beacon in the far corner. Collecting cats
 advances a smooth gradient sky palette (blue, green, purple, yellow, rose, teal).

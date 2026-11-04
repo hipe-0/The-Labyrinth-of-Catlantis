@@ -6,7 +6,7 @@ export function StartScreen({
   subtitle = 'Find all the lost cats in the mysterious maze',
   buttonLabel = 'Start Game',
   hint = 'Press Enter or Space to start',
-  controlsHint = 'Use Arrow Keys to Navigate | Space to Jump',
+  controlsHint = 'Use ↑ to walk, ←/→ to turn | Space to Jump',
 }) {
   useEffect(() => {
     const handleKeyDown = (event) => {

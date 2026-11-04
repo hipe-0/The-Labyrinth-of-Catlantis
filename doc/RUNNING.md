@@ -165,7 +165,7 @@ folder is from an older build; regenerate it before deploying.
   HTTP 200
 - Touch controls were verified in Chrome device emulation:
   - Portrait (iPhone 15, 393×852): D-pad sits at the bottom; buttons are about 78 px;
-    forward/backward movement works; holding a turn button rotates continuously and
+    forward movement works; holding a turn button rotates continuously and
     stops on release; the jump arc peaks around 0.77 units
   - Landscape (844×390): canvas fills the viewport, `scrollY` is 0, document scroll
     height is 390, body background is black, and there is no white band

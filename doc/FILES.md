@@ -292,7 +292,7 @@ Exports `createMovementController`. Returned object:
 
 | Member | Purpose |
 | --- | --- |
-| `handleKeyDown(event)` | Arrow up/down set movement state; left/right start continuous rotation while held; space starts a jump |
+| `handleKeyDown(event)` | Arrow up sets movement state; left/right start continuous rotation while held; space starts a jump; ArrowDown is ignored |
 | `handleKeyUp(event)` | Clears movement/rotation state |
 | `updatePlayerMovement(player, delta)` | Jump physics, fixed-step circle movement, wall sliding, cat pickup, continuous rotation |
 | `keyState` | Raw arrow-key booleans (exposed for debugging) |
@@ -334,9 +334,9 @@ No Three.js.
 
 On-screen controls for mobile. Props: `onMove(direction)`, `onJump()`.
 
-- Left: a 2-row, 3-column D-pad with ↑, ←, ↓, → buttons. Uses pointer events with
-  per-finger tracking and pointer capture; `onMove('forward' | 'backward' | 'left' |
-  'right')` on press and `onMove('stop')` when the last direction is released.
+- Left: a single-row 3-button D-pad (←, ↑, →). Uses pointer events with per-finger
+  tracking and pointer capture; `onMove('forward' | 'left' | 'right')` on press and
+  `onMove('stop')` when the last direction is released. There is no backward button.
 - Right: a pink **Jump** button firing `onJump` on pointer down.
 - Fixed to the bottom with `env(safe-area-inset-bottom)` support, responsive
   `clamp()` button sizes, and z-index 1000.

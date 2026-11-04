@@ -22,7 +22,7 @@ have now been corrected in the working tree.
 | --- | --- | --- |
 | Collision | The player is a 2D circle tested against wall AABBs in a spatial hash; movement is axis-separated so the circle slides along walls and can never overlap one | `collision.js`, `movementController.js`, `gameConfig.js` |
 | Camera | Camera follows the circle centre with clamped exponential smoothing, keeping it inside the collision radius | `MazeScene.js`, `gameConfig.js` |
-| Cat pickup | Proximity-based pickup instead of rounded destination-cell equality; works while forward or backward | `movementController.js` |
+| Cat pickup | Proximity-based pickup instead of rounded destination-cell equality | `movementController.js` |
 | Exit | Distance-based exit check (`EXIT_REACH_RADIUS = 0.5`) instead of grid rounding | `MazeScene.js` |
 | Audio | Procedural footsteps, speed-dependent wind, a near-exit beacon bell, cat meow, start chime, and level-complete arpeggio | `audioEngine.js`, `App.js`, `MazeScene.js` |
 | Level transition | Exit triggers a 5 s camera fly-up/tilt/yaw toward the maze centre, then a splash screen; Start generates the next maze | `MazeScene.js`, `App.js`, `StartScreen.js`, `takeoff.js`, `gameConfig.js` |
@@ -56,7 +56,7 @@ have now been corrected in the working tree.
 | Win check | Rounded grid coordinates instead of exact float equality | `MazeScene.js` |
 | Lighting | Harsh directional moonlight with black unlit faces; no ambient wash | `MazeScene.js`, `Floor.js` |
 | Spawn view | Player faces the first open neighbour of the start cell | `MazeScene.js` |
-| Cat pickup | Cats can be collected while moving forward or backward | `movementController.js` |
+| Cat pickup | Cats can be collected while moving forward | `movementController.js` |
 | Cat spawn | Start cell excluded from random cat placement | `mazeGeneration.js` |
 | Mobile viewport | Fixed body/viewport sizing, black background, no landscape scroll or white band | `index.css`, `App.js` |
 | Portrait controls | Larger responsive D-pad and Jump buttons | `TouchControls.js` |
