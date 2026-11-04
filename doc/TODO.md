@@ -35,7 +35,9 @@ requirements.
 11. [x] Move from "wall block / empty floor" cells to edge-based cells. Every cell
     stores north/east/south/west wall bits; the generator carves passages by removing
     shared edges, and rendering/collision both use merged thin wall segments.
-12. [ ] Start the engine work needed for richer geometry later: roofs and window
-    openings in walls. Make an initial proposal and keep collision extensible.
+12. [x] Initial roof/window proposal written: `doc/GEOMETRY_PROPOSAL.md` and
+    `doc/mockups/wall-openings.svg`. It covers opening geometry, roof metadata,
+    collision simplifications, tests, and a staged migration plan. Runtime
+    implementation remains a follow-up.
 13. [x] Remove the backward command and the down/backward arrow. The touch D-pad is
     now a single row of ← / ↑ / →, freeing portrait screen space.

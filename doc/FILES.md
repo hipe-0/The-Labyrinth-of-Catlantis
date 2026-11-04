@@ -489,6 +489,7 @@ Documentation only; nothing here is imported by the app.
 | `README.md` | Overview, stack, quick start, repository layout, doc index |
 | `ARCHITECTURE.md` | Runtime flow, state ownership, maze algorithm, movement math, rendering, coordinates |
 | `FILES.md` | This file-by-file reference |
+| `GEOMETRY_PROPOSAL.md` | Roof/window opening engine proposal |
 | `RUNNING.md` | Requirements, launcher, scripts, build, deploy, troubleshooting |
 | `KNOWN_ISSUES.md` | Current bugs/regressions with causes and suggested fixes |
 

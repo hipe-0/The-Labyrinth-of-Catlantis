@@ -33,6 +33,13 @@ cats. The horizon glow sits at the bottom, behind the maze silhouette.
 Implemented in `src/components/SkyGradient.js`. The glow is now a halo centred on the
 moon (not the bottom of the screen), and the palette advances after each cat.
 
+## `wall-openings.svg` / `wall-openings.png`
+
+Initial roof/window proposal for the edge-wall engine. Left: a wall segment split into
+sill, lintel, and jambs around an open window. Right: a low-poly gable roof with a
+skylight, intended to appear during the level-complete overview. The full proposal is in
+[`../GEOMETRY_PROPOSAL.md`](../GEOMETRY_PROPOSAL.md).
+
 ## Decisions still open
 
 1. Horizon: are the radii and the fractal detail level close enough to build?
@@ -43,3 +50,6 @@ moon (not the bottom of the screen), and the palette advances after each cat.
 5. Sky: keep the optional rose/teal variants or use only the four requested families?
 6. 3D: should physical heights scale with radius (for example 10 / 13 / 16) so the
    ridgelines stay visually close from inside the maze?
+7. Openings: open holes or translucent panes?
+8. Roofs: fly-up overview only, or selected rooms during play?
+9. Roofs: flat, gable, or both?

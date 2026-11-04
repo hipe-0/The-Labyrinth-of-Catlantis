@@ -118,6 +118,7 @@ The-Labyrinth-of-Catlantis/
 │   ├── FILES.md            # file-by-file reference
 │   ├── RUNNING.md          # install, build, deploy, troubleshooting
 │   ├── TODO.md             # feature backlog and completion status
+│   ├── GEOMETRY_PROPOSAL.md# roofs/window openings proposal
 │   ├── mockups/            # horizon and sky visual proposals
 │   └── KNOWN_ISSUES.md     # bugs and rough edges in the current tree
 │
@@ -193,5 +194,6 @@ The-Labyrinth-of-Catlantis/
 2. [FILES.md](FILES.md) — file-by-file reference with exports and responsibilities.
 3. [RUNNING.md](RUNNING.md) — install, launcher, scripts, build, deploy, troubleshooting.
 4. [TODO.md](TODO.md) — completed features and the remaining backlog.
-5. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — bugs, regressions, and rough edges found in the
+5. [GEOMETRY_PROPOSAL.md](GEOMETRY_PROPOSAL.md) — initial roof/window engine proposal.
+6. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — bugs, regressions, and rough edges found in the
    current working tree, with suggested fixes.
