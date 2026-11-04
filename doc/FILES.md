@@ -13,8 +13,8 @@ Project manifest.
 - **name**: `maze-three-project`
 - **homepage**: `https://hipe-0.github.io/The-Labyrinth-of-Catlantis` — this makes CRA
   build asset URLs under `/The-Labyrinth-of-Catlantis/`.
-- **dependencies**: React 19, React Three Fiber 9, Three.js 0.174, drei 10, testing
-  library, web-vitals.
+- **dependencies**: React 19, React Three Fiber 9, Three.js 0.174, testing
+  library.
 - **devDependencies**: `gh-pages` 6.3.
 - **scripts**:
 
@@ -119,7 +119,6 @@ React entry point.
 - Imports global `index.css`.
 - `ReactDOM.createRoot(document.getElementById('root'))`.
 - Renders `<App />` inside `<React.StrictMode>`.
-- Calls `reportWebVitals()` with no callback (no-op in practice).
 
 ### `src/App.js`
 
@@ -459,11 +458,6 @@ background and `overflow: hidden`; `body` is fixed to the viewport and disables
 overscroll/touch gestures. This prevents landscape scrolling and white bands. Also
 contains the system font stack and font smoothing.
 
-### `src/reportWebVitals.js`
-
-CRA performance helper. `index.js` calls it without a callback, so it does nothing.
-Kept as boilerplate.
-
 ### `src/setupTests.js`
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
@@ -520,5 +514,4 @@ index.js
 │       ├── components/Floor.js
 │       ├── components/ExitBeacon.js
 │       └── config/gameConfig.js
-└── reportWebVitals.js
 ```

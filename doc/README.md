@@ -58,10 +58,8 @@ Before treating the folder as a clean hand-off:
 | `react`, `react-dom` | ^19.0.0 | UI and component model |
 | `@react-three/fiber` | ^9.1.0 | React renderer for Three.js; gives us `<Canvas>`, `useFrame`, `useThree` |
 | `three` | ^0.174.0 | 3D engine (meshes, lights, cameras, geometries) |
-| `@react-three/drei` | ^10.0.5 | Installed but **not imported anywhere** |
 | `react-scripts` | 5.0.1 | Create React App toolchain (dev server, build, test) |
 | `gh-pages` | ^6.3.0 | Publishes the production build to GitHub Pages |
-| `web-vitals` | ^2.1.4 | CRA performance reporting hook |
 
 The game deliberately uses very few abstractions: plain React state, a mutable
 `playerRef` for per-frame data, and a hand-written movement controller.
@@ -137,7 +135,6 @@ The-Labyrinth-of-Catlantis/
 │   ├── App.js              # start screen ↔ canvas switch, touch state
 │   ├── MazeScene.js        # the game: state, frame loop, scene graph
 │   ├── index.css           # full-screen mobile reset; no scroll/white band
-│   ├── reportWebVitals.js  # CRA performance hook
 │   ├── setupTests.js       # jest-dom setup; smoke tests
 │   │
 │   ├── config/

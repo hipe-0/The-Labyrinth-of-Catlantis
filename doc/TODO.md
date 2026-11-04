@@ -24,9 +24,10 @@ requirements.
    and turns toward the maze centre so the labyrinth can be seen from above. A
    splash screen then shows "Labyrinth cleared", the next level number, and a
    Start button. Wording and timings live in `GAME_CONFIG.LEVEL`.
-8. [ ] Clean out remaining prototype code and stale ideas. (Partly done:
-   CRA leftovers and the old movement model are gone; still review unused
-   dependencies, deploy script, and docs.)
+8. [x] Clean out remaining prototype code and stale ideas. Removed the old movement
+   model, CRA unused assets, `@react-three/drei`, `web-vitals`,
+   `reportWebVitals`, and `@testing-library/user-event`. `deploy.sh` remains as an
+   optional Bash alternative.
 9. [x] Cats rocket into the sky with a meow when found. The sky colour lerps
    smoothly through the gradient palettes; the cat rises for 2.4 s, spins, and
    shrinks. Palette review image: `doc/mockups/sky-gradients.png`.
