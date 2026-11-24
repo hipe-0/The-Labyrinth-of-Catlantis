@@ -1,0 +1,17 @@
+{
+  "proposal": "wall-openings",
+  "title": "Window openings in maze walls",
+  "status": "awaiting-review",
+  "capturedAt": "2026-11-24T21:11:07.390Z",
+  "viewport": {
+    "width": 1600,
+    "height": 900,
+    "scale": 2
+  },
+  "png": "doc/proposals/wall-openings/proposal.png",
+  "labUrl": "http://localhost:3000/The-Labyrinth-of-Catlantis/?lab=wall-openings&shot=1&t=1795554662540",
+  "git": {
+    "branch": "main",
+    "commit": "cb1e61a"
+  }
+}
