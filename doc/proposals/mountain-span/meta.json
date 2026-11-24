@@ -1,0 +1,35 @@
+{
+  "proposal": "mountain-span",
+  "title": "Mountain silhouette height span",
+  "status": "awaiting-review",
+  "capturedAt": "2026-11-24T21:47:11.849Z",
+  "viewport": {
+    "width": 1600,
+    "height": 900,
+    "scale": 2
+  },
+  "options": [
+    {
+      "number": 59,
+      "status": "awaiting-review",
+      "png": "doc/proposals/mountain-span/59.png"
+    },
+    {
+      "number": 60,
+      "status": "awaiting-review",
+      "png": "doc/proposals/mountain-span/60.png"
+    },
+    {
+      "number": 61,
+      "status": "awaiting-review",
+      "png": "doc/proposals/mountain-span/61.png"
+    }
+  ],
+  "sheet": "doc/proposals/mountain-span/proposal.png",
+  "png": "doc/proposals/mountain-span/proposal.png",
+  "labUrl": "http://localhost:3000/The-Labyrinth-of-Catlantis/?lab=mountain-span&shot=1&t=1795556829348",
+  "git": {
+    "branch": "main",
+    "commit": "e5b037c"
+  }
+}

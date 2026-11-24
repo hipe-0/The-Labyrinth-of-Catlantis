@@ -1,5 +1,5 @@
 {
-  "nextNumber": 59,
+  "nextNumber": 62,
   "options": [
     {
       "number": 56,
@@ -14,6 +14,21 @@
     {
       "number": 58,
       "proposal": "wall-openings",
+      "status": "awaiting-review"
+    },
+    {
+      "number": 59,
+      "proposal": "mountain-span",
+      "status": "awaiting-review"
+    },
+    {
+      "number": 60,
+      "proposal": "mountain-span",
+      "status": "awaiting-review"
+    },
+    {
+      "number": 61,
+      "proposal": "mountain-span",
       "status": "awaiting-review"
     }
   ]
