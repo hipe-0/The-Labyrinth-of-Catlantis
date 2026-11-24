@@ -125,20 +125,21 @@ React entry point.
 Top-level UI and mode switch.
 
 - State: `isGameStarted`, `hasTouch`, `showLevelScreen`, `completedLevel`,
-  `levelStartRequest`; refs: `touchDirectionRef`, `jumpRequestRef`, `audioRef`.
+  `levelStartRequest`; refs: `moveInputRef`, `lookInputRef`, `jumpRequestRef`,
+  `audioRef`. `hasTouch` starts true for coarse pointers.
 - Renders `<StartScreen onStart={...}>` until the game starts. Starting (button,
   Enter, or Space) creates/resumes the procedural audio engine and plays the start
   chime.
 - After start, renders a full-screen `<Canvas>` (75° FOV, near 0.1, far 1000, initial
   camera `[1, 0.5, 1]`, antialias, DPR capped at 1.5) containing `<MazeScene>`.
-- Passes `touchDirectionRef`, `jumpRequestRef`, the audio engine,
+- Passes `moveInputRef`, `lookInputRef`, `jumpRequestRef`, the audio engine,
   `levelStartRequest`, and `onLevelComplete` down to `MazeScene`.
 - On level completion, shows a second `<StartScreen>` over the frozen final fly-up
   frame with "Labyrinth cleared", the next level number, and a Start button. Start
   increments `levelStartRequest` so `MazeScene` builds the next maze.
-- Shows `<TouchControls>` once `hasTouch` is true, hidden while the level splash is up.
-- `handleTouchMove(direction)` writes the ref; `handleTouchJump()` increments the jump
-  ref. Neither causes a 3D re-render.
+- Shows `<TouchControls>` on touch devices, hidden while the level splash is up.
+- `handleTouchMove(input)` / `handleTouchLook(input)` write the stick refs;
+  `handleTouchJump()` increments the jump ref. None of them cause a 3D re-render.
 - Wrapper is fixed to the viewport with `touchAction: 'none'`, `overscrollBehavior:
   'none'`, and overflow hidden to suppress scrolling and pull-to-refresh.
 
@@ -150,23 +151,25 @@ Responsibilities:
 
 1. **Level state** — creates `mazeData` with `generateMaze()`, stores
    `collectedCats`, `skyIndex`, and the current `level`.
-2. **Player ref** — mutable circle with position, rotation, movement accumulator,
+2. **Player ref** — mutable circle with position, yaw, pitch, movement accumulator,
    jump, and collected set. The initial rotation faces the first open neighbour of
-   `(1,1)`.
+   `(1,1)`; pitch starts at 0.
 3. **Controller** — `useMemo(() => createMovementController(...), [generatedMaze, cats,
    audio])`, with a cat callback that plays the meow.
-4. **Input** — registers `keydown`/`keyup` on `document` while the game is started;
-   reads `touchDirectionRef` and `jumpRequestRef` in `useFrame` and maps them to arrow
-   keys / Space. Touch input does not re-render the 3D scene.
+4. **Input** — registers `keydown`/`keyup` on `document` while the game is started and
+   pointer-lock mouse look on the canvas. Reads `moveInputRef`, `lookInputRef`, and
+   `jumpRequestRef` in `useFrame` and feeds them to the controller. Stick input does
+   not re-render the 3D scene.
 5. **Renderer setup** — `App.js` enables shadows on the `<Canvas>` before the first
    render (materials compile without shadow support if this happens later). `MazeScene`
    sets ACES tone mapping and sRGB output. The shadow frustum follows the player in a
    20×20 zone, refreshes every frame while walking, at 5 Hz when idle, and immediately
    on a new maze.
-6. **Frame loop** — applies touch input, checks exit, updates circle movement and
-   collision, updates audio, and moves the smoothed camera. Once the exit is reached,
-   `phaseRef` switches to `takeoff` and the camera follows `getTakeoffPose`; after
-   `onLevelComplete`, it holds `between-levels` until `levelStartRequest` changes.
+6. **Frame loop** — applies stick/mouse look and movement input, checks exit, updates
+   circle movement and collision, updates audio, and moves the smoothed camera with
+   yaw + pitch. Once the exit is reached, `phaseRef` switches to `takeoff` and the
+   camera follows `getTakeoffPose`; after `onLevelComplete`, it holds `between-levels`
+   until `levelStartRequest` changes.
 7. **Scene graph** — sky gradient, moon-following directional light, Moon, StarField,
    Floor, HorizonMountains, ExitBeacon, cats/rockets, memoized edge-wall segments.
 
@@ -196,10 +199,13 @@ GAME_CONFIG = {
   MAZE_HEIGHT: 31,
   FLOOR_SIZE: 180,
   MOVE_FIXED_STEP: 1 / 144, // fixed movement simulation step (same speed on 60/144 Hz)
-  ROTATE_SMOOTHING: 15,     // exponential rotation smoothing rate (1/second)
-  ROTATION_ANGLE: Math.PI / 4,
-  ROTATION_STEP_INTERVAL: 0.18, // derives the continuous hold speed (45°/0.18 s ≈ 250°/s)
-  ROTATION_THRESHOLD: 0.01,
+  INPUT: {
+    STICK_DEAD_ZONE: 0.12,      // radial dead zone for both touch sticks
+    LOOK_STICK_YAW_RATE: 2.8,   // radians/second at full right-stick deflection
+    LOOK_STICK_PITCH_RATE: 1.8,
+    MOUSE_SENSITIVITY: 0.0022,  // radians per pixel of pointer-locked movement
+    PITCH_LIMIT: Math.PI / 3    // ±60° vertical look
+  },
   JUMP_VELOCITY: 4,
   GRAVITY: 9.8,
   PLAYER: { RADIUS, WALK_SPEED, CAT_PICKUP_RADIUS, EXIT_REACH_RADIUS },
@@ -303,6 +309,20 @@ and the beacon interval.
 
 If `window.AudioContext` is unavailable, every method is a safe no-op.
 
+### `src/utils/joystick.js`
+
+Pure, DOM-free analog-stick math used by both the touch component and the
+movement controller.
+
+- `applyRadialDeadZone(x, y, deadZone)` — returns zero inside the zone,
+  rescales the remainder so output starts smoothly at 0, and clamps the vector
+  to the unit circle.
+- `getStickVector(clientX, clientY, centerX, centerY, radius)` — converts a
+  pointer position into a clamped knob offset plus normalized `{x, y}` control
+  values with +Y pointing up/forward.
+
+Covered by `joystick.test.js`.
+
 ### `src/utils/movementController.js`
 
 Factory that closes over the maze, player ref, setters, cats, and an optional
@@ -312,15 +332,29 @@ Exports `createMovementController`. Returned object:
 
 | Member | Purpose |
 | --- | --- |
-| `handleKeyDown(event)` | Arrow up sets movement state; left/right start continuous rotation while held; space starts a jump; ArrowDown is ignored |
-| `handleKeyUp(event)` | Clears movement/rotation state |
-| `updatePlayerMovement(player, delta)` | Jump physics, fixed-step circle movement, wall sliding, cat pickup, continuous rotation |
-| `keyState` | Raw arrow-key booleans (exposed for debugging) |
+| `handleKeyDown(event)` | WASD / arrows set movement state; Space starts a jump |
+| `handleKeyUp(event)` | Clears the corresponding movement state |
+| `handleMouseMove(dx, dy)` | Accumulates pointer-locked look deltas, converted by mouse sensitivity |
+| `setMoveInput(x, y)` | Raw left-stick vector, normalized to `[-1, 1]` |
+| `setLookInput(x, y)` | Raw right-stick look vector, normalized to `[-1, 1]` |
+| `requestJump()` | Starts a jump if the player is not already airborne |
+| `resetInput()` | Clears keys, sticks, pending look, and the movement accumulator |
+| `updatePlayerMovement(player, delta)` | Look, jump physics, fixed-step circle movement, wall sliding, cat pickup |
+| `keyState` | Forward/backward/left/right booleans (exposed for debugging) |
+
+Input combines keyboard and left-stick movement into a camera-relative vector,
+clamps it to unit length, and applies `INPUT.STICK_DEAD_ZONE` to the analog
+input. Mouse look is accumulated in `pendingYaw`/`pendingPitch`; right-stick
+look is applied at the configured radians-per-second rates. See
+`src/utils/joystick.js` for the pure dead-zone/vector math.
 
 Internal helpers:
 
-- `normalizeRotation(rotation)` — snap to 45° multiples.
-- `movePlayer(player)` — moves the circle with `moveCircle` and checks cat proximity.
+- `wrapAngle(angle)` — wraps yaw to `[-π, π]`.
+- `applyLook(player, delta)` — mouse + right-stick look, pitch clamp.
+- `resolveMoveInput()` — keyboard + stick movement, unit-circle clamp.
+- `movePlayer(player, input)` — camera-relative displacement with `moveCircle`
+  and cat proximity checks.
 - `collectCatNear(x, z)` — collects a cat within `PLAYER.CAT_PICKUP_RADIUS`.
 
 This file contains the movement model described in
@@ -360,18 +394,22 @@ No Three.js.
 
 ### `src/components/TouchControls.js`
 
-On-screen controls for mobile. Props: `onMove(direction)`, `onJump()`.
+Standard twin-stick touch controls. Props: `onMove({x, y})`, `onLook({x, y})`,
+`onJump()`.
 
-- Left: a single-row 3-button D-pad (←, ↑, →). Uses pointer events with per-finger
-  tracking and pointer capture; `onMove('forward' | 'left' | 'right')` on press and
-  `onMove('stop')` when the last direction is released. There is no backward button.
-- Right: a pink **Jump** button firing `onJump` on pointer down.
-- Fixed to the bottom with `env(safe-area-inset-bottom)` support, responsive
-  `clamp()` button sizes, and z-index 1000.
-- Buttons prevent default gestures and context menus.
+- Fixed left **Movement** stick and right **Look** stick, each owning one pointer
+  so both thumbs work at once. Values are normalized to `[-1, 1]` with +Y
+  pointing up/forward; the controller applies the dead zone.
+- `getStickVector` clamps the knob inside its base. Releasing a pointer (or a
+  capture-less release elsewhere on the page) recenters the knob and sends
+  `{x: 0, y: 0}`.
+- Pink **Jump** button above the right stick fires `onJump` on pointer down.
+- Fixed to the bottom corners with `env(safe-area-inset-*)` support,
+  responsive `clamp()` sizes, and z-index 1000.
+- Pointer events prevent default gestures and context menus.
 
-`MazeScene` maps these directions to arrow keys, and `App` turns the jump press into a
-`jumpRequest` counter.
+`App` stores the stick vectors in `moveInputRef` / `lookInputRef`, and `MazeScene`
+feeds them to the controller every frame. No 3D re-render occurs while dragging.
 
 ### `src/components/CuteCat.js`
 
@@ -481,9 +519,10 @@ contains the system font stack and font smoothing.
 ### `src/setupTests.js`
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
-spawn orientation, fractal ring generation, continuous hold rotation, circle collision
-and wall sliding, cat pickup, the silent audio fallback, takeoff camera math, the
-cat-rocket curve, edge-maze connectivity, and wall-segment merging.
+spawn orientation, fractal ring generation, mouse/stick look, joystick dead zones,
+circle collision and wall sliding, backward/forward cat pickup, jump, the silent audio
+fallback, takeoff camera math, the cat-rocket curve, edge-maze connectivity, and
+wall-segment merging.
 
 ---
 
@@ -510,6 +549,7 @@ index.js
 ├── App.js
 │   ├── components/StartScreen.js
 │   ├── components/TouchControls.js
+│   │   └── utils/joystick.js
 │   ├── utils/audioEngine.js
 │   │   └── config/gameConfig.js
 │   └── MazeScene.js
@@ -520,6 +560,7 @@ index.js
 │       │   └── config/gameConfig.js
 │       ├── utils/movementController.js
 │       │   ├── utils/collision.js
+│       │   ├── utils/joystick.js
 │       │   └── config/gameConfig.js
 │       ├── utils/takeoff.js
 │       ├── utils/rocket.js

@@ -14,13 +14,13 @@ run it, and which parts are currently unfinished or broken.
 | --- | --- |
 | Project name | `maze-three-project` |
 | Live demo | <https://hipe-0.github.io/The-Labyrinth-of-Catlantis/> |
-| Latest work | 2026-11-04 — edge-wall mazes, cat rockets, removed backward input; live site redeployed |
-| Current branch | `Touch-control` — pushed and tracking `origin/Touch-control` |
+| Latest work | 2026-11-24 — twin-stick touch controls, FPS mouse look, backward movement |
+| Current branch | `feature/dual-stick-fps-controls` — local feature branch, not pushed |
 | Main stack | React 19, Create React App 5, Three.js 0.174, React Three Fiber 9 |
 | Entry point | `src/index.js` → `src/App.js` → `src/MazeScene.js` |
 | Maze size | 31 × 31 cells |
 | Cats per level | 6 |
-| Controls | Arrow keys to move/turn, Space to jump; touch D-pad + Jump |
+| Controls | PC: WASD/arrows + mouse look + Space; touch: twin sticks + Jump |
 
 > The remaining feature requests are tracked in [TODO.md](TODO.md). Low-priority
 > engine notes are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
@@ -36,20 +36,20 @@ transitive `npm audit` warnings), and the absence of CI and a license.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Local toolchain | Ready | Node 24.18 / npm 11.16 installed, dependencies resolve, `npm start` compiles and serves HTTP 200, `npm run build` succeeds |
-| Git working tree | Ready | All work committed on `Touch-control`; pushed and tracking `origin/Touch-control` (2026-11-04) |
-| Game code | Playable, needs device testing | Touch input, timing, cats/exit, lighting, shadows, horizon, sky, circle collision, procedural audio, and the level fly-up/splash are implemented; remaining feature work is in [TODO.md](TODO.md) |
-| Tests / CI | Partial | Jest tests for start keys, spawn orientation, fractal rings, rotation, circle collision/sliding, cat pickup, and the audio fallback; no CI workflow or license |
-| Published site | Current | `gh-pages` redeployed 2026-11-04 from the `Touch-control` build; live title and bundle verified |
+| Git working tree | Feature branch | Twin-stick/FPS controls committed on `feature/dual-stick-fps-controls`; not pushed until the user approves |
+| Game code | Playable, needs device testing | Twin-stick touch input, mouse look, backward movement, cats/exit, lighting, shadows, horizon, sky, circle collision, procedural audio, and the level fly-up/splash are implemented; remaining feature work is in [TODO.md](TODO.md) |
+| Tests / CI | Partial | Jest tests for start keys, spawn orientation, fractal rings, mouse/stick look, joystick dead zones, circle collision/sliding, backward cat pickup, jump, and the audio fallback; no CI workflow or license |
+| Published site | Previous build | `gh-pages` still serves the 2026-11-04 build until the new controls are tested and deployed |
 
 See [RUNNING.md](RUNNING.md#git-remote-status-verified-2026-11-04) for the verified
 remote/branch table.
 
 Before treating the folder as a clean hand-off:
 
-1. Test the touch fixes on a real phone (movement, turning, jump, bottom controls).
-2. ~~Push `Touch-control` with an upstream.~~ Done 2026-11-04.
+1. Test the twin sticks and mouse look on a real phone and desktop (movement, look, jump).
+2. Push `feature/dual-stick-fps-controls` only after the user approves the dev build.
 3. Add a CI workflow and finish the remaining [TODO.md](TODO.md) items.
-4. ~~Rebuild and redeploy `gh-pages` after the fixes.~~ Done 2026-11-04.
+4. Rebuild and redeploy `gh-pages` after the controls are approved.
 
 ---
 
@@ -90,10 +90,13 @@ Pages `homepage`, CRA serves the app under
 
 | Input | Action |
 | --- | --- |
-| ↑ | Walk forward along the current facing |
-| ← / → | Turn 45° left / right |
+| `W` / `S` or `↑` / `↓` | Walk forward / backward |
+| `A` / `D` or `←` / `→` | Strafe left / right |
+| Mouse (click to capture) | Look around; `Esc` releases the pointer |
 | Space | Jump |
-| Touch controls | ← / ↑ / → D-pad + Jump button after the first touch |
+| Left touch stick | Move relative to the current view |
+| Right touch stick | Look around (yaw + pitch) |
+| Jump button | Jump (touch devices) |
 
 Goal: collect all 6 cats, then reach the exit beacon in the far corner. Each collected
 cat meows and rockets into the sky while the gradient sky palette shifts smoothly
@@ -147,15 +150,16 @@ The-Labyrinth-of-Catlantis/
 │   │   ├── audioEngine.js        # procedural start/step/wind/beacon/meow sounds
 │   │   ├── collision.js         # circle-vs-AABB collision + wall sliding
 │   │   ├── fractal.js           # fractal mountain-ring generator
+│   │   ├── joystick.js         # radial dead-zone and stick-vector math
 │   │   ├── mazeGeneration.js    # edge-wall maze carving, rooms, cat placement
 │   │   ├── mazeWalls.js         # unique/merged wall segments for render + collision
-│   │   ├── movementController.js# keyboard, collision, rotation, jump
+│   │   ├── movementController.js# keyboard, mouse, sticks, collision, jump
 │   │   ├── rocket.js            # collected-cat fly-up curve
 │   │   └── takeoff.js           # level-complete fly-up camera math
 │   │
 │   └── components/
 │       ├── StartScreen.js  # title screen and Start button
-│       ├── TouchControls.js# on-screen D-pad + Jump button
+│       ├── TouchControls.js# twin on-screen sticks + Jump button
 │       ├── CuteCat.js      # low-poly cat built from primitives
 │       ├── RocketCat.js    # collected-cat launch animation
 │       ├── ExitBeacon.js   # green cube + vertical light beam

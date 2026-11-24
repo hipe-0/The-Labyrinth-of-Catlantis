@@ -12,14 +12,23 @@ const { LEVEL } = GAME_CONFIG;
 
 function App() {
   const [isGameStarted, setIsGameStarted] = useState(false);
-  const [hasTouch, setHasTouch] = useState(false);
+  // Coarse pointers get the twin sticks immediately. Hybrid devices fall back
+  // to the first real touch, which the handlers below still detect.
+  const [hasTouch, setHasTouch] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return false;
+    }
+
+    return window.matchMedia('(pointer: coarse)').matches;
+  });
   const [showLevelScreen, setShowLevelScreen] = useState(false);
   const [completedLevel, setCompletedLevel] = useState(1);
   const [levelStartRequest, setLevelStartRequest] = useState(0);
 
   // Touch input is intentionally kept in refs, not React state. This avoids
-  // re-rendering the 3D scene every time a button is pressed or released.
-  const touchDirectionRef = useRef(null);
+  // re-rendering the 3D scene every time a stick is moved or released.
+  const moveInputRef = useRef({ x: 0, y: 0 });
+  const lookInputRef = useRef({ x: 0, y: 0 });
   const jumpRequestRef = useRef(0);
   const audioRef = useRef(null);
 
@@ -38,8 +47,9 @@ function App() {
   };
 
   const handleLevelComplete = (level) => {
-    // Drop any held touch direction so the next level starts idle.
-    touchDirectionRef.current = null;
+    // Drop any held sticks so the next level starts idle.
+    moveInputRef.current = { x: 0, y: 0 };
+    lookInputRef.current = { x: 0, y: 0 };
     setCompletedLevel(level);
     setShowLevelScreen(true);
   };
@@ -54,9 +64,16 @@ function App() {
     setLevelStartRequest((request) => request + 1);
   };
 
-  const handleTouchMove = (direction) => {
+  const handleTouchMove = (input) => {
     setHasTouch(true);
-    touchDirectionRef.current = direction;
+    moveInputRef.current.x = input.x;
+    moveInputRef.current.y = input.y;
+  };
+
+  const handleTouchLook = (input) => {
+    setHasTouch(true);
+    lookInputRef.current.x = input.x;
+    lookInputRef.current.y = input.y;
   };
 
   const handleTouchJump = () => {
@@ -112,7 +129,8 @@ function App() {
           >
             <MazeScene
               isGameStarted={isGameStarted}
-              touchDirectionRef={touchDirectionRef}
+              moveInputRef={moveInputRef}
+              lookInputRef={lookInputRef}
               jumpRequestRef={jumpRequestRef}
               audio={audioRef.current}
               levelStartRequest={levelStartRequest}
@@ -130,7 +148,11 @@ function App() {
             />
           )}
           {hasTouch && !showLevelScreen && (
-            <TouchControls onMove={handleTouchMove} onJump={handleTouchJump} />
+            <TouchControls
+              onMove={handleTouchMove}
+              onLook={handleTouchLook}
+              onJump={handleTouchJump}
+            />
           )}
         </>
       )}

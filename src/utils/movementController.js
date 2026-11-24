@@ -1,6 +1,23 @@
 // src/utils/movementController.js
 import { GAME_CONFIG } from '../config/gameConfig';
 import { createMazeCollisionWorld, moveCircle } from './collision';
+import { applyRadialDeadZone } from './joystick';
+
+const TWO_PI = Math.PI * 2;
+const MAX_MOVEMENT_SUBSTEPS = 15;
+
+const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
+
+// Keep yaw bounded so very long sessions do not lose floating-point precision.
+const wrapAngle = (angle) => {
+  if (!Number.isFinite(angle)) {
+    return 0;
+  }
+
+  return ((((angle + Math.PI) % TWO_PI) + TWO_PI) % TWO_PI) - Math.PI;
+};
+
+const toFinite = (value) => (Number.isFinite(value) ? value : 0);
 
 export const createMovementController = (
   maze,
@@ -10,58 +27,65 @@ export const createMovementController = (
   cats,
   onCatCollected
 ) => {
-  const {
-    MOVE_FIXED_STEP,
-    ROTATE_SMOOTHING,
-    ROTATION_ANGLE,
-    ROTATION_STEP_INTERVAL,
-    ROTATION_THRESHOLD,
-    PLAYER
-  } = GAME_CONFIG;
+  const { MOVE_FIXED_STEP, PLAYER, INPUT } = GAME_CONFIG;
 
-  const MAX_MOVEMENT_SUBSTEPS = 15;
-  const ROTATION_SPEED = ROTATION_ANGLE / ROTATION_STEP_INTERVAL;
   const collisionWorld = createMazeCollisionWorld(maze);
 
+  // Keyboard state is held in our own structure so the browser's repetition
+  // behaviour cannot change the movement speed.
   const keyState = {
-    ArrowUp: false,
-    ArrowLeft: false,
-    ArrowRight: false
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
   };
 
-  const normalizeRotation = (rotation) => {
-    // Ensure rotation is always a multiple of 45 degrees (PI/4)
-    return Math.round(rotation / ROTATION_ANGLE) * ROTATION_ANGLE;
+  // Raw touch-stick values, normalized to [-1, 1]. +Y points up/forward.
+  const stickMove = { x: 0, y: 0 };
+  const stickLook = { x: 0, y: 0 };
+
+  // Pointer-locked mouse movement is accumulated between frames.
+  let pendingYaw = 0;
+  let pendingPitch = 0;
+
+  const tryJump = () => {
+    const player = playerRef.current;
+
+    if (!player || player.isJumping) {
+      return;
+    }
+
+    player.isJumping = true;
+    player.jumpVelocity = GAME_CONFIG.JUMP_VELOCITY;
+    player.jumpHeight = 0;
   };
 
   const handleKeyDown = (event) => {
-    const player = playerRef.current;
-
     switch (event.key) {
       case 'ArrowUp':
-        keyState.ArrowUp = true;
+      case 'w':
+      case 'W':
+        keyState.forward = true;
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        keyState.backward = true;
         break;
       case 'ArrowLeft':
-        if (!keyState.ArrowLeft) {
-          keyState.ArrowLeft = true;
-          player.targetRotation = normalizeRotation(
-            player.targetRotation + ROTATION_ANGLE
-          );
-        }
+      case 'a':
+      case 'A':
+        keyState.left = true;
         break;
       case 'ArrowRight':
-        if (!keyState.ArrowRight) {
-          keyState.ArrowRight = true;
-          player.targetRotation = normalizeRotation(
-            player.targetRotation - ROTATION_ANGLE
-          );
-        }
+      case 'd':
+      case 'D':
+        keyState.right = true;
         break;
       case ' ':
-        if (!player.isJumping) {
-          player.isJumping = true;
-          player.jumpVelocity = GAME_CONFIG.JUMP_VELOCITY;
-          player.jumpHeight = 0;
+      case 'Spacebar':
+        if (!event.repeat) {
+          tryJump();
         }
         break;
       default:
@@ -72,17 +96,111 @@ export const createMovementController = (
   const handleKeyUp = (event) => {
     switch (event.key) {
       case 'ArrowUp':
-        keyState.ArrowUp = false;
+      case 'w':
+      case 'W':
+        keyState.forward = false;
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        keyState.backward = false;
         break;
       case 'ArrowLeft':
-        keyState.ArrowLeft = false;
+      case 'a':
+      case 'A':
+        keyState.left = false;
         break;
       case 'ArrowRight':
-        keyState.ArrowRight = false;
+      case 'd':
+      case 'D':
+        keyState.right = false;
         break;
       default:
         break;
     }
+  };
+
+  // Pointer-lock reports relative movement in pixels. Convert once, then let
+  // the frame update apply the accumulated delta at a stable point.
+  const handleMouseMove = (movementX = 0, movementY = 0) => {
+    pendingYaw -= toFinite(movementX) * INPUT.MOUSE_SENSITIVITY;
+    pendingPitch -= toFinite(movementY) * INPUT.MOUSE_SENSITIVITY;
+  };
+
+  const setMoveInput = (x = 0, y = 0) => {
+    stickMove.x = clamp(toFinite(x), -1, 1);
+    stickMove.y = clamp(toFinite(y), -1, 1);
+  };
+
+  const setLookInput = (x = 0, y = 0) => {
+    stickLook.x = clamp(toFinite(x), -1, 1);
+    stickLook.y = clamp(toFinite(y), -1, 1);
+  };
+
+  const resetInput = () => {
+    keyState.forward = false;
+    keyState.backward = false;
+    keyState.left = false;
+    keyState.right = false;
+    stickMove.x = 0;
+    stickMove.y = 0;
+    stickLook.x = 0;
+    stickLook.y = 0;
+    pendingYaw = 0;
+    pendingPitch = 0;
+    playerRef.current.movementAccumulator = 0;
+  };
+
+  const applyLook = (player, frameDelta) => {
+    const analogLook = applyRadialDeadZone(
+      stickLook.x,
+      stickLook.y,
+      INPUT.STICK_DEAD_ZONE
+    );
+
+    player.rotation = wrapAngle(
+      player.rotation +
+        pendingYaw -
+        analogLook.x * INPUT.LOOK_STICK_YAW_RATE * frameDelta
+    );
+
+    const pitch = toFinite(player.pitch) + pendingPitch;
+    player.pitch = clamp(
+      pitch + analogLook.y * INPUT.LOOK_STICK_PITCH_RATE * frameDelta,
+      -INPUT.PITCH_LIMIT,
+      INPUT.PITCH_LIMIT
+    );
+
+    pendingYaw = 0;
+    pendingPitch = 0;
+  };
+
+  // Combine keyboard and left-stick movement into a camera-relative vector.
+  // The result never exceeds unit length so diagonals are not faster.
+  const resolveMoveInput = () => {
+    const analogMove = applyRadialDeadZone(
+      stickMove.x,
+      stickMove.y,
+      INPUT.STICK_DEAD_ZONE
+    );
+
+    let x =
+      (keyState.right ? 1 : 0) -
+      (keyState.left ? 1 : 0) +
+      analogMove.x;
+    let y =
+      (keyState.forward ? 1 : 0) -
+      (keyState.backward ? 1 : 0) +
+      analogMove.y;
+
+    const magnitude = Math.hypot(x, y);
+
+    if (magnitude > 1) {
+      x /= magnitude;
+      y /= magnitude;
+    }
+
+    return { x, y };
   };
 
   const collectCatNear = (x, z) => {
@@ -110,14 +228,22 @@ export const createMovementController = (
     }
   };
 
-  const movePlayer = (player) => {
-    if (!keyState.ArrowUp) {
+  const movePlayer = (player, input) => {
+    const inputMagnitude = Math.hypot(input.x, input.y);
+
+    if (inputMagnitude < 1e-8) {
       return;
     }
 
-    const distance = PLAYER.WALK_SPEED * MOVE_FIXED_STEP;
-    const dx = -Math.sin(player.rotation) * distance;
-    const dz = -Math.cos(player.rotation) * distance;
+    const distance = PLAYER.WALK_SPEED * MOVE_FIXED_STEP * inputMagnitude;
+    const sin = Math.sin(player.rotation);
+    const cos = Math.cos(player.rotation);
+
+    // Forward is (-sin, -cos); right is (cos, -sin).
+    const directionX = (-sin * input.y + cos * input.x) / inputMagnitude;
+    const directionZ = (-cos * input.y - sin * input.x) / inputMagnitude;
+    const dx = directionX * distance;
+    const dz = directionZ * distance;
     const previousX = player.x;
     const previousZ = player.y;
     const result = moveCircle(
@@ -141,9 +267,15 @@ export const createMovementController = (
   };
 
   const updatePlayerMovement = (player, delta) => {
-    // Clamp very long frames (tab switches, stalls) so physics and rotation do
+    // Clamp very long frames (tab switches, stalls) so physics and look do
     // not jump by a large amount at once.
     const frameDelta = Math.min(delta, 0.1);
+
+    if (typeof player.pitch !== 'number') {
+      player.pitch = 0;
+    }
+
+    applyLook(player, frameDelta);
 
     // Jump physics with gravity
     if (player.isJumping) {
@@ -157,18 +289,7 @@ export const createMovementController = (
       }
     }
 
-    // Continuous rotation while a turn key/button is held. The target advances
-    // at a constant angular speed instead of jumping every 45°, which removes
-    // the visible stop-start "hiccups" at low rotation speeds. On release the
-    // target snaps back to the nearest 45° so movement stays grid-aligned.
-    const turnDirection =
-      (keyState.ArrowLeft ? 1 : 0) - (keyState.ArrowRight ? 1 : 0);
-
-    if (turnDirection !== 0) {
-      player.targetRotation += turnDirection * ROTATION_SPEED * frameDelta;
-    } else {
-      player.targetRotation = normalizeRotation(player.targetRotation);
-    }
+    const moveInput = resolveMoveInput();
 
     // Fixed-timestep movement. 144 Hz matches the original high-refresh PC
     // feel; 60 Hz phones run the same number of simulation steps per second.
@@ -182,26 +303,21 @@ export const createMovementController = (
       player.movementAccumulator >= MOVE_FIXED_STEP &&
       movementSteps < MAX_MOVEMENT_SUBSTEPS
     ) {
-      movePlayer(player);
+      movePlayer(player, moveInput);
       player.movementAccumulator -= MOVE_FIXED_STEP;
-      movementSteps++;
-    }
-
-    // Smooth rotation interpolation. Exponential smoothing is frame-rate
-    // independent, so the turn feels the same at 30, 60, or 144 fps.
-    const rotationBlend = 1 - Math.exp(-ROTATE_SMOOTHING * frameDelta);
-    player.rotation += (player.targetRotation - player.rotation) * rotationBlend;
-
-    // Precise rotation alignment
-    if (Math.abs(player.rotation - player.targetRotation) < ROTATION_THRESHOLD) {
-      player.rotation = player.targetRotation;
+      movementSteps += 1;
     }
   };
 
   return {
     handleKeyDown,
     handleKeyUp,
+    handleMouseMove,
+    setMoveInput,
+    setLookInput,
+    requestJump: tryJump,
+    resetInput,
     updatePlayerMovement,
-    keyState
+    keyState,
   };
 };

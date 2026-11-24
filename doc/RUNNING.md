@@ -147,7 +147,8 @@ folder is from an older build; regenerate it before deploying.
 | Assets 404 on Pages | `homepage` missing the repo name | Set `homepage` to the full Pages URL and rebuild |
 | `npm run deploy` asks for credentials | Git auth not configured | Configure a GitHub token or SSH key |
 | `deploy.sh` fails at `git push` | No SSH key / wrong remote | Use `npm run deploy`, or add an SSH key |
-| Touch buttons do nothing or feel laggy | Old build used `w/a/s/d` and React state updates | Fixed; rebuild/redeploy and use the current build |
+| Touch sticks do nothing or feel laggy | Old build used a D-pad/React state updates | Fixed; rebuild/redeploy and use the current build |
+| Mouse look does not work | Pointer was not captured | Click the game canvas once; Esc releases the pointer |
 | Cannot finish the level | Old build used exact float equality in `checkExit` | Fixed; rebuild/redeploy and use the current build |
 
 ---
@@ -155,9 +156,8 @@ folder is from an older build; regenerate it before deploying.
 ## Environment notes for this copy
 
 - Working directory: `C:\Users\mouni\Desktop\2026-03-26 Maze game - The-Labyrinth-of-Catlantis`
-- Branch: `Touch-control` — tracks `origin/Touch-control` (pushed 2026-11-04)
-- HEAD: see `git log`; all game work is committed on `Touch-control` (ahead of
-  `origin/main` at `258f564`)
+- Branch: `feature/dual-stick-fps-controls` — local feature branch, not pushed
+- HEAD: see `git log`; twin-stick/FPS control work is committed here
 
 - Working tree: clean after the 2026-11-04 commit
 - `npm run build` was verified successfully while writing this documentation
@@ -165,16 +165,16 @@ folder is from an older build; regenerate it before deploying.
 - `npm start` was verified successfully on a local dev server: compiled and returned
   HTTP 200
 - Touch controls were verified in Chrome device emulation:
-  - Portrait (iPhone 15, 393×852): D-pad sits at the bottom; buttons are about 78 px;
-    forward movement works; holding a turn button rotates continuously and
-    stops on release; the jump arc peaks around 0.77 units
+  - Portrait (iPhone 15, 393×852): twin stick bases sit in the bottom corners and
+    the Jump button sits above the right stick; dragging each stick updates the
+    analog input, and releasing recenters the knob
   - Landscape (844×390): canvas fills the viewport, `scrollY` is 0, document scroll
     height is 390, body background is black, and there is no white band
-- Touch input now writes to refs and is applied in `useFrame`; pressing a button does
-  not re-render the 3D scene
-- Rotation is time-based at ~250°/s while a turn key is held; the target moves
-  continuously and snaps to 45° on release, so a 144 Hz PC and a 60 Hz phone use the
-  same turn rate without stop-start hiccups
+- Touch and mouse look write to refs / accumulate deltas and are applied in
+  `useFrame`; moving a stick does not re-render the 3D scene
+- Mouse look uses pointer lock: click the canvas to capture, Esc to release
+- Movement is camera-relative, includes backward and strafing, clamps diagonals to
+  unit length, and runs at the same speed on 60/144 Hz displays
 - The directional moonlight follows the moon's world position, clamped to a minimum
   height; the 20×20 shadow zone follows the player and refreshes every frame while
   walking, then at 5 Hz while standing still

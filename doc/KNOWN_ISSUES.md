@@ -1,5 +1,10 @@
 # Known Issues and Rough Edges
 
+> Update 2026-11-24: the tank/D-pad controls were replaced by standard FPS
+> keyboard + mouse and twin-stick touch controls. Sections below that describe the
+> old D-pad, 45° turning, or ignored backward input are historical analysis, not
+> current behaviour. See `doc/ARCHITECTURE.md#6-movement-model`.
+
 These notes describe the current working tree (`Touch-control` branch). The high/medium
 issues from the original touch refactor were fixed on **2026-11-02**, the
 shadow-rendering regression was fixed on **2026-11-03**, and circle collision plus

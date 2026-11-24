@@ -56,11 +56,12 @@ splash screen; pressing Start on the splash generates the next maze in place.
 | `showLevelScreen` | `App` | boolean | Shows the level-complete splash over the final fly-up frame |
 | `completedLevel` | `App` | number | Level number shown on the splash |
 | `levelStartRequest` | `App` | number | Incremented by the splash Start button; tells `MazeScene` to build the next maze |
-| `touchDirectionRef` | `App` | ref | Latest touch D-pad direction; read by `MazeScene` in `useFrame` |
+| `moveInputRef` | `App` | ref | Latest left-stick vector `{x, y}`; read by `MazeScene` in `useFrame` |
+| `lookInputRef` | `App` | ref | Latest right-stick look vector `{x, y}`; read by `MazeScene` in `useFrame` |
 | `jumpRequestRef` | `App` | ref | Jump request counter; read by `MazeScene` in `useFrame` |
-| `hasTouch` | `App` | boolean | Shows touch controls after the first touch |
+| `hasTouch` | `App` | boolean | Shows the twin sticks on coarse pointers or after the first touch |
 | `audioRef` | `App` | ref | Procedural sound engine, created on the first Start gesture |
-| `playerRef` | `MazeScene` | mutable ref | Circle position, rotation, jump physics, collected set — updated every frame without re-rendering |
+| `playerRef` | `MazeScene` | mutable ref | Circle position, yaw, pitch, jump physics, collected set — updated every frame without re-rendering |
 | `cameraFollowRef` | `MazeScene` | ref | Smoothed camera position that follows the player circle |
 | `phaseRef` | `MazeScene` | ref | `playing` → `takeoff` → `between-levels` |
 | `takeoffRef` | `MazeScene` | ref | Start pose and elapsed time for the level-complete fly-up |
@@ -79,7 +80,8 @@ a mutable object:
 ```js
 playerRef.current = {
   x, y,                    // circle centre in world units (y is world Z)
-  rotation, targetRotation,// radians, multiples of 45°
+  rotation,                // yaw in radians; unbounded but wrapped to [-π, π]
+  pitch,                   // look pitch in radians, clamped to ±60°
   movementAccumulator,     // fixed-timestep leftover
   jumpVelocity, jumpHeight, isJumping,
   collectedCats            // mirror of the React Set, used inside the controller
@@ -110,14 +112,15 @@ reference to re-render. They are kept in sync in `movementController.js`.
           start the fly-up (phase → 'takeoff'), play the level-complete
           arpeggio, stop walking ambience, and return
 
-2. movementController.updatePlayerMovement(player, delta)
-   ├── apply jump physics (gravity)
-   ├── read keyState (arrow keys)
-   ├── advance targetRotation continuously while a turn key is held
-   ├── run fixed 1/144 s substeps:
-   │     ├── move the player circle at WALK_SPEED with wall sliding
-   │     └── collect any cat within CAT_PICKUP_RADIUS
-   └── smooth rotation toward targetRotation
+2. copy the latest stick vectors into the movement controller
+   └── movementController.updatePlayerMovement(player, delta)
+       ├── apply accumulated mouse look, then right-stick yaw/pitch
+       ├── apply jump physics (gravity)
+       ├── read keyboard state + left stick into a camera-relative vector
+       ├── run fixed 1/144 s substeps:
+       │     ├── move the player circle at WALK_SPEED with wall sliding
+       │     └── collect any cat within CAT_PICKUP_RADIUS
+       └── clamp pitch to ±60°
 
 3. audio.update(...)
    ├── wind gain and footsteps follow the distance actually travelled
@@ -126,7 +129,7 @@ reference to re-render. They are kept in sync in `movementController.js`.
 
 4. camera follows the circle centre with clamped exponential smoothing
    camera.position = (follow.x, EYE_HEIGHT + jumpHeight, follow.z)
-   camera.rotation = (0, player.rotation, 0)
+   camera.rotation = (player.pitch, player.rotation, 0)
 
 The fly-up raises the camera to LEVEL.TAKEOFF_HEIGHT over
 LEVEL.TAKEOFF_DURATION, eases its pitch to LEVEL.TAKEOFF_PITCH, and turns the
@@ -139,10 +142,10 @@ follows the player and refreshes while walking.
 Important: the camera is the player. There is no visible avatar; first-person view is
 the whole character.
 
-`delta` (seconds since last frame) drives jump physics, rotation timing, and the movement
+`delta` (seconds since last frame) drives jump physics, look rates, and the movement
 simulator. Movement runs in fixed `1/144 s` substeps, so 60 Hz phones and 144 Hz PCs
-travel at the same speed. Rotation uses a fixed time-based step interval plus
-exponential smoothing, so the turn rate is also identical across refresh rates.
+travel at the same speed. Mouse movement is expressed in pixels and converted once per
+frame; stick look uses radians per second, so both are refresh-rate independent.
 
 ---
 
@@ -199,18 +202,29 @@ File: `src/utils/movementController.js`
 `createMovementController(maze, playerRef, setCollectedCats, setSkyColor, cats)` returns:
 
 ```js
-{ handleKeyDown, handleKeyUp, updatePlayerMovement, keyState }
+{
+  handleKeyDown, handleKeyUp, handleMouseMove,
+  setMoveInput, setLookInput, requestJump, resetInput,
+  updatePlayerMovement, keyState
+}
 ```
 
 ### Input
 
-`handleKeyDown` / `handleKeyUp` maintain a `keyState` object for the three active arrow
-keys. Space is handled immediately: if not already jumping, set
-`jumpVelocity = JUMP_VELOCITY` and `jumpHeight = 0`.
+`handleKeyDown` / `handleKeyUp` maintain a `keyState` object with four booleans:
+forward, backward, left, and right. Both `WASD` and the arrow keys feed these
+booleans, so the two layouts behave identically. Space starts a jump when the
+player is not already airborne.
 
-The controller only understands `ArrowUp`, `ArrowLeft`, `ArrowRight`, and `' '`
-(space). The touch layer maps its three directions to those arrow keys. `ArrowDown` is
-intentionally ignored; walking backward was removed to free portrait screen space.
+The left touch stick feeds `setMoveInput(x, y)` and the right stick feeds
+`setLookInput(x, y)`; both values are in `[-1, 1]` with +Y pointing up/forward.
+The controller applies a radial dead zone (`INPUT.STICK_DEAD_ZONE`) and rescales
+the remainder, so a resting thumb produces no drift and a partial deflection
+produces a proportionally slower movement.
+
+Mouse look uses pointer lock: clicking the canvas captures the pointer,
+`mousemove` reports relative pixels, and Esc releases it. `handleMouseMove`
+converts the delta with `INPUT.MOUSE_SENSITIVITY` and applies it on the next frame.
 
 ### Fixed timestep
 
@@ -220,20 +234,21 @@ fills an accumulator; each substep moves the player circle by
 collects any nearby cat. This keeps the speed identical on 60 Hz and 144 Hz displays.
 The accumulator is capped at 15 substeps to avoid a spiral of death after a stall.
 
-### Forward
+### Forward, backward, and strafing
 
-The forward vector depends on `rotation`:
+Movement is camera-relative. The forward and right vectors depend on yaw:
 
 ```js
-forwardX = -Math.sin(rotation)
-forwardZ = -Math.cos(rotation)
+forwardX = -Math.sin(rotation)   forwardZ = -Math.cos(rotation)
+rightX   =  Math.cos(rotation)   rightZ   = -Math.sin(rotation)
 ```
 
-- At `rotation = 0`, forward is `-Z` (north).
-- At `rotation = -π/2`, forward is `+X` (east).
+- At `rotation = 0`, forward is `-Z` (north) and right is `+X` (east).
+- At `rotation = -π/2`, forward is `+X` (east) and right is `+Z` (south).
 
-Movement is continuous: holding `ArrowUp`/the touch forward button moves at
-`WALK_SPEED` every substep. There is no backward command.
+Keyboard and stick input are added together, then clamped to unit length, so
+diagonals are not faster than straight lines. Negative forward input walks
+backward at the same speed, and cats are collected while reversing.
 
 ### Collision
 
@@ -255,20 +270,19 @@ added on top of the player. Four outer boxes fence the maze so future generators
 let the player escape. Cat pickup and the exit check use distances from the circle
 centre, not rounded grid cells.
 
-### Rotation
+### Look
 
-- Holding left/right sets `keyState`; the first press advances `targetRotation` by one
-  45° step immediately.
-- While held, `targetRotation` advances continuously at
-  `ROTATION_ANGLE / ROTATION_STEP_INTERVAL` (45° / 0.18 s ≈ **250°/s**). Continuous
-  target motion avoids the stop-start “hiccups” of stepping the target every 45°. This
-  is time-based, not frame-based, so 60 Hz and 144 Hz devices rotate at the same speed.
-- On release, `normalizeRotation` snaps the target to the nearest multiple of `π/4` so
-  movement stays grid-aligned.
-- `rotation` interpolates toward `targetRotation` using exponential smoothing
-  (`1 - exp(-ROTATE_SMOOTHING * delta)`) and snaps when within `ROTATION_THRESHOLD`.
-- Continuous rotation is driven by `keyState`; touch buttons keep the direction held
-  until pointer release, so touch and keyboard behave the same.
+- `rotation` is the yaw and is applied directly to the camera; there is no
+  target/snap pipeline any more.
+- Pointer-locked mouse movement accumulates in `pendingYaw` / `pendingPitch`
+  and is applied once per frame, then cleared.
+- The right stick adds continuous yaw/pitch at
+  `INPUT.LOOK_STICK_YAW_RATE` / `INPUT.LOOK_STICK_PITCH_RATE`, scaled by its
+  dead-zoned deflection.
+- Yaw wraps to `[-π, π]`; pitch is clamped to `±INPUT.PITCH_LIMIT` (±60°).
+- `input.y > 0` looks up, `input.x > 0` looks right.
+- The camera rotation order is `YXZ`, so pitch always applies around the local
+  right axis regardless of facing.
 
 ### Jump
 
@@ -304,7 +318,8 @@ If found and not already collected:
 4. Call the optional `onCatCollected` callback, which plays the meow and adds the cat
    to `departingCats`.
 
-Forward movement checks for cats every substep.
+Movement in any direction (including backward and strafing) checks for cats every
+substep.
 
 ### Cat rocket
 
@@ -357,10 +372,11 @@ The new maze is generated only when the splash Start button (or Enter/Space) fir
 
 - generates a new maze and increments `level`,
 - resets `player.x/y` to `(1,1)`,
-- resets `rotation` / `targetRotation` to face the first open neighbour of the new
-  start cell,
+- resets `rotation` to face the first open neighbour of the new start cell and
+  sets `pitch` back to 0,
 - clears `player.collectedCats` and React's `collectedCats`,
 - resets the sky to black,
+- clears held keyboard/stick/mouse input,
 - snaps the camera to the new spawn and returns to `playing`.
 
 Splash wording and fly-up timings live in `GAME_CONFIG.LEVEL`.
@@ -499,9 +515,11 @@ height. Height is `jumpHeight`.
 ## 10. Data flow summary
 
 ```text
-keydown/keyup ──► movementController.keyState
-touch D-pad ────► App.touchDirectionRef ──► MazeScene useFrame ──► arrows ──► controller
-touch Jump ─────► App.jumpRequestRef ────► MazeScene useFrame ──► Space ──► controller
+keydown/keyup ──────► movementController.keyState
+pointer lock + mousemove ──► movementController.handleMouseMove
+left touch stick ───► App.moveInputRef ───► MazeScene useFrame ───► setMoveInput
+right touch stick ──► App.lookInputRef ───► MazeScene useFrame ───► setLookInput
+touch Jump ─────────► App.jumpRequestRef ─► MazeScene useFrame ───► requestJump
 
 useFrame(delta)
    ├─ phase takeoff ──► getTakeoffPose() ──► animate camera

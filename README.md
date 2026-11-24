@@ -6,8 +6,12 @@ Our vibe-coded game of finding cats in a labyrinth is here.
 Author: Hippolyte Mounier
 Code: Claude AI
 
-Use arrow keys to move
-Use space bar to jump
+## Controls
+
+**PC:** `WASD` or arrow keys move, click the maze to capture the mouse and look
+around (`Esc` releases it), `Space` jumps.
+
+**Touch:** left stick moves, right stick looks, and the Jump button jumps.
 
 Run it : https://hipe-0.github.io/The-Labyrinth-of-Catlantis/
 

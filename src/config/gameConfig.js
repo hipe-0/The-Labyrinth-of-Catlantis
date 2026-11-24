@@ -16,12 +16,16 @@ export const GAME_CONFIG = {
 
   // Movement Parameters
   MOVE_FIXED_STEP: 1 / 144, // Fixed simulation step; same speed on 60/144 Hz
-  ROTATE_SMOOTHING: 15, // Exponential rotation smoothing rate (1/second)
-  
-  // Rotation Constants
-  ROTATION_ANGLE: Math.PI / 4, // 45 degrees
-  ROTATION_STEP_INTERVAL: 0.18, // Derives the continuous hold speed (45°/0.18 s ≈ 250°/s)
-  ROTATION_THRESHOLD: 0.01, // Precision for rotation alignment
+
+  // First-person look and analog stick behaviour. Stick values are normalized
+  // to [-1, 1] with +Y meaning "up" / forward on both sticks.
+  INPUT: {
+    STICK_DEAD_ZONE: 0.12, // Radial dead zone so resting thumbs do not drift
+    LOOK_STICK_YAW_RATE: 2.8, // Radians/second at full right-stick deflection
+    LOOK_STICK_PITCH_RATE: 1.8, // Radians/second vertical look rate
+    MOUSE_SENSITIVITY: 0.0022, // Radians per pixel of pointer-locked movement
+    PITCH_LIMIT: Math.PI / 3, // 60° up/down; keeps the horizon readable
+  },
   
   // Jump Mechanics
   JUMP_VELOCITY: 4,    // Increased from 0.3 for stronger initial jump

@@ -41,3 +41,8 @@ requirements.
     implementation remains a follow-up.
 13. [x] Remove the backward command and the down/backward arrow. The touch D-pad is
     now a single row of ← / ↑ / →, freeing portrait screen space.
+14. [x] Replace tank controls with standard first-person controls: WASD/arrows
+    move (including backward and strafing), pointer-locked mouse look, a fixed
+    twin-stick layout on touch (left moves, right looks), and a Jump button.
+    Movement is camera-relative and diagonals are normalized. Implemented on
+    `feature/dual-stick-fps-controls`.

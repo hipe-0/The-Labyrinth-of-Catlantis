@@ -1,120 +1,235 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { getStickVector } from '../utils/joystick';
 
-export function TouchControls({ onMove, onJump }) {
-  // Track one direction per active finger so releasing one button does not
-  // cancel a direction that is still being held with another finger.
-  const activePointers = useRef(new Map());
+const STICK_SIZE = 'clamp(104px, min(28vw, 24vh), 148px)';
+const KNOB_SIZE = 'clamp(46px, min(13vw, 12vh), 64px)';
+const JUMP_SIZE = 'clamp(58px, min(16vw, 14vh), 76px)';
 
-  const updateDirection = () => {
-    const directions = Array.from(activePointers.current.values());
-    onMove(directions.length ? directions[directions.length - 1] : 'stop');
+const safeBottom = 'max(16px, env(safe-area-inset-bottom, 0px))';
+const safeLeft = 'max(16px, env(safe-area-inset-left, 0px))';
+const safeRight = 'max(16px, env(safe-area-inset-right, 0px))';
+
+const baseStyle = {
+  position: 'relative',
+  width: STICK_SIZE,
+  height: STICK_SIZE,
+  borderRadius: '50%',
+  border: '2px solid rgba(255, 255, 255, 0.35)',
+  background:
+    'radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04) 70%)',
+  boxShadow: 'inset 0 0 18px rgba(255, 255, 255, 0.08)',
+  boxSizing: 'border-box',
+  touchAction: 'none',
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
+  WebkitTapHighlightColor: 'transparent',
+  pointerEvents: 'auto',
+};
+
+const knobStyle = {
+  position: 'absolute',
+  left: '50%',
+  top: '50%',
+  width: KNOB_SIZE,
+  height: KNOB_SIZE,
+  borderRadius: '50%',
+  border: '2px solid rgba(255, 255, 255, 0.85)',
+  background: 'rgba(255, 255, 255, 0.32)',
+  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.35)',
+  transform: 'translate(-50%, -50%)',
+  pointerEvents: 'none',
+};
+
+// One fixed analog stick. Each stick owns exactly one pointer, so the left
+// thumb can move while the right thumb looks (and vice versa).
+function Stick({ label, onChange, testId }) {
+  const baseRef = useRef(null);
+  const knobRef = useRef(null);
+  const pointerIdRef = useRef(null);
+  const onChangeRef = useRef(onChange);
+  const resetStickRef = useRef(null);
+
+  onChangeRef.current = onChange;
+
+  const resetStick = () => {
+    pointerIdRef.current = null;
+
+    if (knobRef.current) {
+      knobRef.current.style.transform = 'translate(-50%, -50%)';
+    }
+
+    onChangeRef.current({ x: 0, y: 0 });
   };
 
-  const startMove = (direction) => (event) => {
+  resetStickRef.current = resetStick;
+
+  // Fallback for browsers where pointer capture is unavailable: a release
+  // anywhere on the page still centers the stick instead of leaving it stuck.
+  useEffect(() => {
+    const handleWindowPointerEnd = (event) => {
+      if (
+        pointerIdRef.current === null ||
+        event.pointerId !== pointerIdRef.current
+      ) {
+        return;
+      }
+
+      resetStickRef.current();
+    };
+
+    window.addEventListener('pointerup', handleWindowPointerEnd);
+    window.addEventListener('pointercancel', handleWindowPointerEnd);
+
+    return () => {
+      window.removeEventListener('pointerup', handleWindowPointerEnd);
+      window.removeEventListener('pointercancel', handleWindowPointerEnd);
+    };
+  }, []);
+
+  const updateFromPointer = (event) => {
+    const base = baseRef.current;
+
+    if (!base) {
+      return;
+    }
+
+    const rect = base.getBoundingClientRect();
+    const radius = rect.width / 2;
+    // Keep the whole knob inside the base, not just its centre.
+    const knobRadius = rect.width * 0.22;
+    const maxOffset = Math.max(radius - knobRadius, 1);
+    const vector = getStickVector(
+      event.clientX,
+      event.clientY,
+      rect.left + radius,
+      rect.top + radius,
+      maxOffset
+    );
+
+    if (knobRef.current) {
+      knobRef.current.style.transform =
+        `translate(-50%, -50%) translate(${vector.offsetX}px, ${vector.offsetY}px)`;
+    }
+
+    onChangeRef.current({ x: vector.x, y: vector.y });
+  };
+
+  const handlePointerDown = (event) => {
+    if (pointerIdRef.current !== null) {
+      return;
+    }
+
     event.preventDefault();
+    pointerIdRef.current = event.pointerId;
+
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
-      // Pointer capture is best-effort; pointerup/leave still stop movement.
+      // Pointer capture is best-effort; pointerup still releases the stick.
     }
-    activePointers.current.set(event.pointerId, direction);
-    updateDirection();
+
+    updateFromPointer(event);
   };
 
-  const endMove = (event) => {
-    if (!activePointers.current.has(event.pointerId)) {
+  const handlePointerMove = (event) => {
+    if (pointerIdRef.current !== event.pointerId) {
       return;
     }
-    activePointers.current.delete(event.pointerId);
-    updateDirection();
+
+    event.preventDefault();
+    updateFromPointer(event);
   };
 
-  const buttonSize = 'clamp(56px, min(20vw, 13vh), 84px)';
-  const jumpSize = 'clamp(60px, min(21vw, 13vh), 88px)';
-  const gap = 'clamp(6px, 2vw, 12px)';
+  const handlePointerEnd = (event) => {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
 
-  const buttonStyle = {
-    width: buttonSize,
-    height: buttonSize,
-    padding: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    border: '2px solid rgba(255, 255, 255, 0.9)',
-    borderRadius: '50%',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    fontSize: 'clamp(24px, min(8vw, 7vh), 34px)',
-    lineHeight: 1,
-    color: 'white',
-    cursor: 'pointer',
-    userSelect: 'none',
-    WebkitUserSelect: 'none',
-    WebkitTapHighlightColor: 'transparent',
-    touchAction: 'none',
-    pointerEvents: 'auto',
-    backdropFilter: 'blur(4px)',
-    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.35)',
+    resetStick();
   };
 
+  return (
+    <div
+      ref={baseRef}
+      role="group"
+      aria-label={label}
+      data-testid={testId}
+      style={baseStyle}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      onLostPointerCapture={handlePointerEnd}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <div ref={knobRef} style={knobStyle} />
+    </div>
+  );
+}
+
+export function TouchControls({ onMove, onLook, onJump }) {
   const containerStyle = {
     position: 'fixed',
-    left: 0,
-    right: 0,
-    bottom: 'max(16px, env(safe-area-inset-bottom, 0px))',
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingLeft: 'max(16px, env(safe-area-inset-left, 0px))',
-    paddingRight: 'max(16px, env(safe-area-inset-right, 0px))',
-    boxSizing: 'border-box',
+    inset: 0,
     zIndex: 1000,
     pointerEvents: 'none',
   };
 
-  // One row of three: forward in the middle, turn buttons on either side. The
-  // old two-row layout included backward, which was rarely useful on mobile.
-  const arrowContainerStyle = {
-    display: 'grid',
-    gridTemplateColumns: `repeat(3, ${buttonSize})`,
-    gridTemplateRows: buttonSize,
-    gap,
-    pointerEvents: 'none',
-  };
-
   const jumpButtonStyle = {
-    ...buttonStyle,
-    width: jumpSize,
-    height: jumpSize,
+    position: 'absolute',
+    right: safeRight,
+    bottom: `calc(${safeBottom} + ${STICK_SIZE} + 14px)`,
+    width: JUMP_SIZE,
+    height: JUMP_SIZE,
+    padding: 0,
+    borderRadius: '50%',
+    border: '2px solid rgba(255, 255, 255, 0.95)',
     backgroundColor: 'rgba(230, 0, 115, 0.55)',
-    borderColor: 'rgba(255, 255, 255, 0.95)',
-    fontSize: 'clamp(14px, min(4.2vw, 3.8vh), 18px)',
+    color: 'white',
+    fontSize: 'clamp(12px, min(3.4vw, 3.2vh), 16px)',
     fontWeight: 700,
     letterSpacing: '0.02em',
-    marginLeft: gap,
+    lineHeight: 1,
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.35)',
+    backdropFilter: 'blur(4px)',
+    touchAction: 'none',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    WebkitTapHighlightColor: 'transparent',
+    cursor: 'pointer',
+    pointerEvents: 'auto',
   };
-
-  const arrowButton = (direction, label, symbol, gridColumn, gridRow) => (
-    <button
-      type="button"
-      aria-label={label}
-      style={{ ...buttonStyle, gridColumn, gridRow }}
-      onPointerDown={startMove(direction)}
-      onPointerUp={endMove}
-      onPointerCancel={endMove}
-      onPointerLeave={endMove}
-      onLostPointerCapture={endMove}
-      onContextMenu={(event) => event.preventDefault()}
-    >
-      {symbol}
-    </button>
-  );
 
   return (
     <div style={containerStyle}>
-      <div style={arrowContainerStyle}>
-        {arrowButton('left', 'Turn left', '←', '1', '1')}
-        {arrowButton('forward', 'Move forward', '↑', '2', '1')}
-        {arrowButton('right', 'Turn right', '→', '3', '1')}
+      <div
+        style={{
+          position: 'absolute',
+          left: safeLeft,
+          bottom: safeBottom,
+          pointerEvents: 'auto',
+        }}
+      >
+        <Stick
+          label="Movement stick"
+          testId="move-stick"
+          onChange={onMove}
+        />
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          right: safeRight,
+          bottom: safeBottom,
+          pointerEvents: 'auto',
+        }}
+      >
+        <Stick
+          label="Look stick"
+          testId="look-stick"
+          onChange={onLook}
+        />
       </div>
 
       <button

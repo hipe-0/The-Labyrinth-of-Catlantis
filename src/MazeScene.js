@@ -17,26 +17,19 @@ import { Floor } from './components/Floor';
 import { HorizonMountains } from './components/HorizonMountains';
 import { ExitBeacon } from './components/ExitBeacon';
 
-const ARROW_KEYS = ['ArrowUp', 'ArrowLeft', 'ArrowRight'];
-const TOUCH_KEY_MAP = {
-  forward: 'ArrowUp',
-  left: 'ArrowLeft',
-  right: 'ArrowRight',
-};
-
 const MAZE_CENTER = (GAME_CONFIG.MAZE_WIDTH - 1) / 2;
 const { SHADOW, PLAYER, CAMERA, LEVEL, WALL } = GAME_CONFIG;
 
 export function MazeScene({
   isGameStarted,
-  touchDirectionRef,
+  moveInputRef,
+  lookInputRef,
   jumpRequestRef,
   audio,
   levelStartRequest = 0,
   onLevelComplete,
 }) {
   const { camera, gl } = useThree();
-  const lastTouchDirectionRef = useRef(null);
   const lastJumpRequestRef = useRef(0);
   const lightRef = useRef();
   const moonPositionRef = useRef(new THREE.Vector3(30, 30, 30));
@@ -56,7 +49,7 @@ export function MazeScene({
     x: 1,
     y: 1,
     rotation: startRotation,
-    targetRotation: startRotation,
+    pitch: 0,
     movementAccumulator: 0,
     jumpVelocity: 0,
     jumpHeight: 0,
@@ -139,6 +132,65 @@ export function MazeScene({
     }
   }, [isGameStarted, movementController]);
 
+  // Standard FPS mouse look: click the canvas to capture the pointer, move the
+  // mouse to look, and press Esc (browser default) to release it. Touch and pen
+  // pointers are ignored so the on-screen sticks keep working on hybrids.
+  useEffect(() => {
+    if (!isGameStarted) {
+      return undefined;
+    }
+
+    const canvas = gl.domElement;
+    let isLocked = false;
+
+    const handlePointerLockChange = () => {
+      isLocked = document.pointerLockElement === canvas;
+    };
+
+    const handleMouseMove = (event) => {
+      if (!isLocked || phaseRef.current !== 'playing') {
+        return;
+      }
+
+      movementController.handleMouseMove(
+        event.movementX || 0,
+        event.movementY || 0
+      );
+    };
+
+    const requestPointerLock = (event) => {
+      if (event.pointerType && event.pointerType !== 'mouse') {
+        return;
+      }
+
+      if (document.pointerLockElement === canvas) {
+        return;
+      }
+
+      try {
+        const request = canvas.requestPointerLock?.();
+        request?.catch?.(() => {});
+      } catch {
+        // Pointer lock is optional. The game remains playable with the sticks,
+        // and keyboard movement still works without mouse look.
+      }
+    };
+
+    canvas.addEventListener('pointerdown', requestPointerLock);
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    document.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      canvas.removeEventListener('pointerdown', requestPointerLock);
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      document.removeEventListener('mousemove', handleMouseMove);
+
+      if (document.pointerLockElement === canvas) {
+        document.exitPointerLock?.();
+      }
+    };
+  }, [gl, isGameStarted, movementController]);
+
   // Start a fresh maze when the splash screen's Start button fires. The Canvas
   // stays mounted, so the overlay can sit on top of the final fly-up frame.
   useEffect(() => {
@@ -157,12 +209,23 @@ export function MazeScene({
     player.y = 1;
     const nextStartRotation = getStartRotation(nextMazeData.maze);
     player.rotation = nextStartRotation;
-    player.targetRotation = nextStartRotation;
+    player.pitch = 0;
     player.movementAccumulator = 0;
     player.jumpVelocity = 0;
     player.jumpHeight = 0;
     player.isJumping = false;
     player.collectedCats = new Set();
+
+    movementController.resetInput();
+    lastJumpRequestRef.current = jumpRequestRef?.current ?? 0;
+    if (moveInputRef?.current) {
+      moveInputRef.current.x = 0;
+      moveInputRef.current.y = 0;
+    }
+    if (lookInputRef?.current) {
+      lookInputRef.current.x = 0;
+      lookInputRef.current.y = 0;
+    }
 
     setCollectedCats(new Set());
     setDepartingCats([]);
@@ -174,7 +237,7 @@ export function MazeScene({
     camera.position.set(1, CAMERA.EYE_HEIGHT, 1);
     camera.rotation.set(0, nextStartRotation, 0);
     gl.shadowMap.needsUpdate = true;
-  }, [camera, gl, levelStartRequest]);
+  }, [camera, gl, levelStartRequest, movementController, moveInputRef, lookInputRef, jumpRequestRef]);
 
   const checkExit = useCallback(() => {
     const player = playerRef.current;
@@ -234,7 +297,11 @@ export function MazeScene({
       announced: false,
     };
 
-    ARROW_KEYS.forEach((key) => movementController.handleKeyUp({ key }));
+    movementController.resetInput();
+    if (document.pointerLockElement === gl.domElement) {
+      document.exitPointerLock?.();
+    }
+
     audio?.levelComplete();
 
     // Stop the walking ambience immediately; the beacon is left out of this
@@ -294,22 +361,24 @@ export function MazeScene({
 
     const player = playerRef.current;
 
-    // Apply touch input from refs instead of React state. This keeps touch
-    // presses out of the render path and makes them feel like keyboard input.
-    const touchDirection = touchDirectionRef?.current ?? null;
-    if (touchDirection !== lastTouchDirectionRef.current) {
-      lastTouchDirectionRef.current = touchDirection;
-      ARROW_KEYS.forEach((key) => movementController.handleKeyUp({ key }));
-      const key = TOUCH_KEY_MAP[touchDirection];
-      if (key) {
-        movementController.handleKeyDown({ key });
-      }
-    }
+    // Apply analog stick input from refs instead of React state. This keeps
+    // continuous thumb movement out of the render path.
+    const moveInput = moveInputRef?.current;
+    movementController.setMoveInput(
+      moveInput?.x ?? 0,
+      moveInput?.y ?? 0
+    );
+
+    const lookInput = lookInputRef?.current;
+    movementController.setLookInput(
+      lookInput?.x ?? 0,
+      lookInput?.y ?? 0
+    );
 
     const jumpRequest = jumpRequestRef?.current ?? 0;
     if (jumpRequest !== lastJumpRequestRef.current) {
       lastJumpRequestRef.current = jumpRequest;
-      movementController.handleKeyDown({ key: ' ' });
+      movementController.requestJump();
     }
 
     if (checkExit()) {
@@ -319,7 +388,7 @@ export function MazeScene({
 
     const previousX = player.x;
     const previousZ = player.y;
-    movementController.updatePlayerMovement(player, delta, cats, setCollectedCats, setSkyIndex);
+    movementController.updatePlayerMovement(player, delta);
 
     // Sound follows the distance the circle actually travelled: walking into a
     // wall produces no footsteps and no wind.
@@ -356,7 +425,7 @@ export function MazeScene({
     camera.position.x = follow.x;
     camera.position.z = follow.z;
     camera.position.y = CAMERA.EYE_HEIGHT + player.jumpHeight;
-    camera.rotation.set(0, player.rotation, 0);
+    camera.rotation.set(player.pitch || 0, player.rotation, 0);
 
     // Moon.js has already copied the moon's world position into the light this
     // frame (child layout effects subscribe first). Shift both the light and
