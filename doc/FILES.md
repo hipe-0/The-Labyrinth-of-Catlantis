@@ -220,8 +220,8 @@ GAME_CONFIG = {
   AUDIO: { MASTER_VOLUME, WIND_MAX_VOLUME, FOOTSTEP_VOLUME, BEACON_INTERVAL,
            BEACON_RANGE, BEACON_VOLUME },
   SHADOW: { ZONE_HALF_SIZE, MAP_SIZE, IDLE_UPDATE_INTERVAL, MOVE_THRESHOLD },
-  HORIZON: { RINGS, INITIAL_POINTS, INITIAL_JITTER, PASSES, AMPLITUDE, ROUGHNESS,
-             TOP_BAND_HEIGHT },
+  HORIZON: { RINGS, RIDGE_FREQUENCY, INITIAL_POINTS, INITIAL_JITTER, PASSES,
+             AMPLITUDE, ROUGHNESS, TOP_BAND_HEIGHT },
   SKY: { STAR_COUNT, STAR_SIZE, STAR_RADIUS, ROTATION_SPEED, TILT_ANGLE,
          DOME_RADIUS, GLOW_STRENGTH, GLOW_POWER, TRANSITION_SPEED, GRADIENTS },
   MOON: { ORBIT_SPEED, SPIN_SPEED, POSITION, MIN_LIGHT_HEIGHT, SIZE, INNER_SIZE,
@@ -483,11 +483,17 @@ casts shadows. No props.
 
 Three decorative fractal mountain rings centred on the maze:
 
-- Radii `40`, `55`, `70`; heights `7`, `9.5`, `12`.
+- Radii `40`, `55`, `70`; center heights `7`, `9.5`, `12`; ridge spans `20`, `26`,
+  `32`.
 - Built from `generateFractalRing` (coarse control points plus 3 midpoint-displacement
   passes), so each ring has an irregular low-poly outline.
-- Black `meshBasicMaterial` walls with a white top band. The near band is brightest;
-  the far band is dimmest. No lighting, shadows, or collision.
+- `getMountainHeights` (`src/utils/mountainHeight.js`) gives each ring a cyclic
+  3-wave ridge centered on its height. Heights below `0` are clamped to the ground.
+- Black `meshBasicMaterial` walls with a white top band that follows the ridge. The
+  near band is dimmest; the far band is brightest. No lighting, shadows, or
+  collision.
+- The white band uses a small polygon offset so it stays a solid line instead of
+  z-fighting with the black face.
 - Geometry is generated once with `useMemo` and disposed on unmount.
 
 ### `src/components/Moon.js`

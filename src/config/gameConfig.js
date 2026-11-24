@@ -94,14 +94,16 @@ export const GAME_CONFIG = {
     MOVE_THRESHOLD: 0.01, // Minimum movement before refreshing while walking
   },
 
-  // Decorative mountain rings around the maze. They are pushed well outside
-  // the maze and kept low so there is still a visible horizon/sky above them.
+  // Decorative mountain rings around the maze. Each ridgeline varies around
+  // HEIGHT by SPAN peak-to-valley; negative excursions are clamped to the
+  // ground. Radii, seeds, and depth opacities keep the same layered look.
   HORIZON: {
     RINGS: [
-      { RADIUS: 40, HEIGHT: 7, SEED: 101, LINE_OPACITY: 0.55 },
-      { RADIUS: 55, HEIGHT: 9.5, SEED: 202, LINE_OPACITY: 0.8 },
-      { RADIUS: 70, HEIGHT: 12, SEED: 303, LINE_OPACITY: 1.0 },
+      { RADIUS: 40, HEIGHT: 7, SPAN: 20, SEED: 101, LINE_OPACITY: 0.55 },
+      { RADIUS: 55, HEIGHT: 9.5, SPAN: 26, SEED: 202, LINE_OPACITY: 0.8 },
+      { RADIUS: 70, HEIGHT: 12, SPAN: 32, SEED: 303, LINE_OPACITY: 1.0 },
     ],
+    RIDGE_FREQUENCY: 5,
     INITIAL_POINTS: 10,
     INITIAL_JITTER: 2.5,
     PASSES: 3,

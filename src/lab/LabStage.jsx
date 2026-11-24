@@ -35,7 +35,6 @@ export function LabStage({
   showFloor = true,
   lightPosition = [9.25, 12, 11],
   lightTarget = DEFAULT_LIGHT_TARGET,
-  moonPosition = [0, 30, 0],
 }) {
   const target = useMemo(() => {
     const object = new THREE.Object3D();
@@ -43,21 +42,9 @@ export function LabStage({
     return object;
   }, [lightTarget]);
 
-  const moonPositionRef = useRef(
-    new THREE.Vector3(moonPosition[0], moonPosition[1], moonPosition[2])
-  );
-
-  useEffect(() => {
-    moonPositionRef.current.set(
-      moonPosition[0],
-      moonPosition[1],
-      moonPosition[2]
-    );
-  }, [moonPosition]);
-
   return (
     <>
-      <SkyGradient skyIndex={skyIndex} moonPositionRef={moonPositionRef} />
+      <SkyGradient skyIndex={skyIndex} />
 
       {/* The game lights the maze with a single cool directional moonlight. */}
       <ambientLight intensity={0.18} />
@@ -137,7 +124,6 @@ export function LabViewport({ id, camera, children, onReady }) {
         showFloor={camera.showFloor ?? true}
         lightTarget={camera.lightTarget}
         lightPosition={camera.lightPosition}
-        moonPosition={camera.moonPosition}
       >
         {children}
       </LabStage>
