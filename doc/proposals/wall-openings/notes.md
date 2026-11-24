@@ -3,14 +3,24 @@
 Status: awaiting review
 Captured: 2026.11.24
 Lab: `src/lab/proposals/wall-openings.jsx`
-PNG: `doc/proposals/wall-openings/proposal.png`
+Sheet: `doc/proposals/wall-openings/proposal.png`
+
+## Options
+
+| Number | Name | Opening | Sill | Lintel |
+| --- | --- | --- | --- | --- |
+| **56** | Low window | 0.90 × 0.35 | 0.35 | 0.30 |
+| **57** | Tall slit | 0.55 × 0.55 | 0.30 | 0.15 |
+| **58** | Wide ribbon | 1.60 × 0.30 | 0.40 | 0.30 |
+
+Each option uses the same four-box split: sill, lintel, and two jambs. The opening
+is an open hole, not a glass pane.
 
 ## What changes
 
-- The back wall is split into four boxes around a 0.90 × 0.35 opening.
-- The opening is an open hole: the night sky is visible through it, with no glass
-  pane.
-- The white edges of the four pieces outline the new window frame.
+- The back wall is split into four boxes around the opening.
+- The three options differ only in the opening proportion.
+- The white edges of the four pieces outline the window frame.
 
 ## What stays the same
 
@@ -20,15 +30,19 @@ PNG: `doc/proposals/wall-openings/proposal.png`
 - Sky palettes are untouched; the preview uses the in-game blue palette so the
   opening reads as sky.
 
-## Decisions needed
+## Decision needed
 
-1. Approve the look, or adjust the opening size / sill height?
-2. Open hole or a translucent glass pane?
-3. Interior walls only, or the outer boundary too?
-4. How many eligible segments should receive a window? The current proposal
-   suggests a low density (~10%) so the maze does not turn into confetti.
+**Which option number should be approved: 56, 57, or 58?**
+
+Also open:
+
+- Open hole or a translucent glass pane?
+- Interior walls only, or the outer boundary too?
+- How many eligible segments should receive a window? The current suggestion is a
+  low density (~10%) so the maze does not turn into confetti.
 
 ## Gate
 
-No game runtime file has been changed. This proposal becomes a game commit only
-after the user explicitly approves the PNG.
+No game runtime file has been changed. Reply with an option number, for example
+`58 approved`. The agent marks that option approved in the option ledger, marks the
+others not selected, and only then implements the chosen option in the game.

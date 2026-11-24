@@ -1,15 +1,15 @@
-# Visual Workflow — Preview First, Then Touch the Game
+# Visual Workflow — Three Numbered Options, Then the Game
 
-Visual changes are reviewed as a **side-development PNG** before any game runtime
-file changes. The short version:
+Visual changes are reviewed as **three numbered option PNGs** before any game
+runtime file changes:
 
 ```text
-lab proposal  →  proposal.png  →  your approval  →  game commit  →  your playtest
+3 options  →  56.png / 57.png / 58.png  →  "58 approved"  →  game commit  →  playtest
 ```
 
-This exists so art direction is cheap to explore and expensive to break: a proposal
-lives in `src/lab/`, the game keeps rendering exactly what it rendered before, and
-nothing is "committed to the game" until you have looked at the PNG and said yes.
+Option numbers are **global and permanent**. “58” always means the same option,
+even after more proposals are added. The ledger in `src/lab/option-ledger.json`
+is the source of truth.
 
 ---
 
@@ -21,139 +21,177 @@ nothing is "committed to the game" until you have looked at the PNG and said yes
 npm start
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:3000/The-Labyrinth-of-Catlantis/?lab=wall-openings
 ```
 
-The lab page has **Compare / Current / Proposed** modes and a notes section. It is
-available only in the development server (`NODE_ENV=development`); the normal game
-entry point is unchanged.
+The lab defaults to the **3-up comparison**. Use the buttons to focus one option,
+or switch to **Current** to see what the game renders today.
 
-### Capture the review PNG
+### Capture the review PNGs
 
 ```bat
-npm run preview -- wall-openings --open
+npm run preview -- wall-openings
 ```
 
-What it does:
+Output:
 
-1. Reuses a dev server on port 3000 if one is already running, otherwise starts
-   one with `BROWSER=none` and stops it afterwards.
-2. Opens the lab in a headless Chromium at 1600 × 900 (2× device scale).
-3. Waits for `window.__LAB_READY__ === true` (after both canvases render).
-4. Writes `doc/proposals/<slug>/proposal.png` and `meta.json`.
-5. Prints the absolute PNG path and, with `--open`, opens the image.
+```text
+doc/proposals/wall-openings/56.png
+doc/proposals/wall-openings/57.png
+doc/proposals/wall-openings/58.png
+doc/proposals/wall-openings/proposal.png   ← 3-up review sheet
+doc/proposals/wall-openings/meta.json
+```
 
-Useful options:
+Each numbered PNG has the option number large in the left rail, the option name,
+the dimensions, the baseline description, and an “awaiting review” status. The
+sheet is the quick side-by-side comparison.
 
-| Option | Purpose |
-| --- | --- |
-| `--open` | Open the PNG in the default image viewer |
-| `--port 3001` | Use another dev-server port |
-| `--width 1920 --height 1080` | Change the capture size |
-| `--scale 1` | Faster capture, smaller PNG |
-| `--out path.png` | Override the PNG path |
-| `--keep-server` | Leave a server started by the script running |
-| `--no-server` | Fail instead of starting a dev server |
-| `--timeout 180000` | Allow more time for the first compile |
+`--open` opens the sheet (or the single option when `--option` is used).
+
+### Recapture one option
+
+```bat
+npm run preview -- wall-openings --option 58
+```
+
+Useful after approval, to update the status to `APPROVED` without regenerating the
+other two PNGs.
+
+### Start a new proposal
+
+```bat
+npm run proposal:new -- dark-walls "Dark wall faces"
+```
+
+This allocates the next three numbers from the ledger and creates
+`src/lab/proposals/dark-walls.jsx` with those numbers. Then edit the three renders,
+register the proposal in `src/lab/proposals/index.js`, and capture it.
 
 ---
 
-## 2. Creating a proposal
+## 2. The option ledger
 
-1. Copy the template:
+`src/lab/option-ledger.json`:
+
+```json
+{
+  "nextNumber": 59,
+  "options": [
+    { "number": 56, "proposal": "wall-openings", "status": "awaiting-review" },
+    { "number": 57, "proposal": "wall-openings", "status": "awaiting-review" },
+    { "number": 58, "proposal": "wall-openings", "status": "awaiting-review" }
+  ]
+}
+```
+
+- **Exactly three numbers** belong to each proposal.
+- Numbers are **never reused**, even if a proposal is rejected or deleted.
+- Statuses: `awaiting-review`, `approved`, `implemented`, `verified`,
+  `not-selected`.
+- The test suite checks that the proposal numbers and the ledger agree, and that
+  `nextNumber` is beyond every issued number.
+- The first demo proposal uses `56, 57, 58`; the next proposal will get
+  `59, 60, 61`.
+
+---
+
+## 3. Creating a proposal
+
+1. Allocate numbers and scaffold the file:
 
    ```bat
-   copy src\lab\proposals\_template.jsx src\lab\proposals\my-idea.jsx
+   npm run proposal:new -- my-idea "My visual idea"
    ```
 
-2. Give it an `id` that matches the file name (`my-idea`) and a short title.
+2. Edit `src/lab/proposals/my-idea.jsx`:
 
-3. Define a fixed camera and at least two variants:
+   - `baseline` — what the game does today.
+   - three `options` — three different answers to the same visual question.
+   - a fixed camera, shared by all views.
+   - notes: what changes, what stays the same, what needs a decision.
 
-   - `current` — what the game does today.
-   - `proposed` — the visual change. If there are several options, add
-     `proposed-a`, `proposed-b`, etc.
+3. Register it in `src/lab/proposals/index.js`.
 
-   Both variants must use the same camera and stage so the comparison is honest.
-
-4. Register it in `src/lab/proposals/index.js`:
-
-   ```js
-   import myIdea from './my-idea';
-   export const PROPOSALS = [wallOpenings, myIdea];
-   ```
-
-5. Capture and review:
+4. Capture:
 
    ```bat
    npm run preview -- my-idea --open
    ```
 
-6. Add `doc/proposals/my-idea/notes.md` with:
-
-   - `Status: awaiting review`
-   - what changes
-   - what stays exactly the same
-   - the decisions you need from the user
+5. Add `doc/proposals/my-idea/notes.md` with the option table, status, and the
+   decision needed.
 
 ### Proposal rules
 
-- One visual idea per proposal. A material change and a geometry change should be
-  separate proposals unless the user explicitly asks for a combo.
+- **Exactly three numbered options.** No more, no fewer.
+- All three use the **same camera and stage**; only the visual idea changes.
+- The baseline is not numbered. It is the current game reference.
+- One visual idea per proposal. Material and geometry changes should be separate
+  proposals unless the user asks for a combo.
+- Keep it lab-only. `src/lab/**` must never be imported by `src/App.js`,
+  `src/MazeScene.js`, or a game component.
 - Use real game components where possible (`WallBox`, `SkyGradient`, `Floor`,
-  `CuteCat`, etc.) so the preview matches the game's lighting and proportions.
+  `CuteCat`, etc.) so the preview matches the game’s lighting and proportions.
 - No pointer controls, no random layout, no animation that changes the silhouette
   between captures.
-- Keep the proposal lab-only. `src/lab/**` must never be imported by
-  `src/App.js`, `src/MazeScene.js`, or a game component.
-- The PNG must be readable without the console: the board includes the proposal
-  title, current/proposed labels, the camera-independent stage, and a "Not in
-  game" footer.
+
+### File layout
+
+```text
+src/lab/
+├── GraphicsLab.jsx          # board, focus view, routing, ready signal
+├── LabStage.jsx             # fixed camera, night stage, WallBox helper
+├── lab.css                  # board / focus / notes styling
+├── option-ledger.json       # global option numbers and statuses
+└── proposals/
+    ├── index.js             # registry
+    ├── _template.jsx        # three-option template (use proposal:new)
+    └── wall-openings.jsx    # example: options 56, 57, 58
+
+doc/proposals/
+└── <slug>/
+    ├── <number>.png         # one numbered review PNG per option
+    ├── proposal.png         # 3-up review sheet
+    ├── meta.json            # capture time, git branch/commit, viewport
+    └── notes.md             # option table, decisions, status
+```
 
 The lab is wired through the dev-only `?lab=` switch in `src/index.js`. That switch
 is the only entry-point change allowed for lab wiring; the normal `<App />` path
 must remain untouched. The lab is lazy-loaded, so the game does not fetch it during
 normal play.
 
-### File layout
-
-```text
-src/lab/
-├── GraphicsLab.jsx          # review board, routing, ready signal
-├── LabStage.jsx             # fixed camera, night stage, WallBox helper
-├── lab.css                  # board / panel / notes styling
-└── proposals/
-    ├── index.js             # registry
-    ├── _template.jsx        # copy me
-    └── wall-openings.jsx    # example proposal
-
-doc/proposals/
-└── <slug>/
-    ├── proposal.png         # the review image
-    ├── meta.json            # capture time, git branch/commit, viewport
-    └── notes.md             # what changes, decisions, status
-```
-
 ---
 
-## 3. The approval gate
+## 4. Approval by number
 
-The workflow is deliberately strict about the word **approval**.
+The user approves an option by number:
 
 | User says | Agent does |
 | --- | --- |
-| "approved", "go", "implement it", "commit it" | Implement the approved variant in the game |
-| "looks interesting", "what about…", a question | Stay in the lab and iterate; do not touch game code |
-| Silence | Wait; do not treat it as approval |
-| "rejected" | Update the proposal or close it; do not implement |
+| `58 approved` | Mark 58 `approved`; mark 56/57 `not-selected`; implement 58 only |
+| `56 approved` | Mark 56 `approved`; mark 57/58 `not-selected`; implement 56 only |
+| “Interesting, but…” | Stay in the lab and iterate; no game changes |
+| A question | Answer it; no game changes |
+| Silence | Wait; silence is not approval |
+
+When an option is approved, update:
+
+1. `src/lab/option-ledger.json` — the chosen option’s status, and the other two to
+   `not-selected`.
+2. `doc/proposals/<slug>/notes.md` — `Status: approved — ready to implement`,
+   `Approved option: 58 — Wide ribbon`.
+3. Optionally recapture the chosen option:
+   `npm run preview -- <slug> --option 58`.
 
 **Preview commits** are allowed and encouraged to keep the tree clean, but they may
 only contain `src/lab/**`, `doc/proposals/**`, `scripts/visual-preview.mjs`, the
-`preview` npm script, the dev-only `?lab=` switch in `src/index.js`, and
-documentation. They must not contain changes to:
+`preview`/`proposal:new` npm scripts, the dev-only `?lab=` switch in `src/index.js`,
+and documentation. They must not contain changes to:
 
 - `src/App.js`
 - `src/MazeScene.js`
@@ -161,17 +199,13 @@ documentation. They must not contain changes to:
 - `src/config/gameConfig.js`
 - `src/utils/**`
 
-**Implementation commits** happen only after explicit approval. They contain the
-approved visual change plus its tests, docs, and the changelog line. The lab
-proposal and PNG stay in the repo as the review record.
-
 ---
 
-## 4. After approval: implement and playtest
+## 5. After approval: implement and playtest
 
-1. Implement the approved variant in the game. Do not add unapproved visual
-   changes while you are in there.
-2. Update `doc/proposals/<slug>/notes.md`:
+1. Implement the approved option in the game. Do not add unapproved visual
+   changes.
+2. Set the ledger status to `implemented` and the proposal notes to
    `Status: implemented — playtesting`.
 3. Add or update tests where logic changed. Visual-only changes should at least
    keep the existing suite green.
@@ -188,29 +222,31 @@ proposal and PNG stay in the repo as the review record.
 7. Ask the user to run `npm start` and test the game. Do **not** push until the
    user explicitly approves the push.
 
-When the user confirms the game looks right, set
-`Status: verified — user-approved` in the proposal notes.
+When the user confirms the game looks right, set the ledger and notes to
+`verified — user-approved`.
 
 ---
 
-## 5. Why a separate lab instead of a branch in the game?
+## 6. Why numbered options instead of “before/after”?
 
-- The game code stays stable while multiple options are explored.
-- The PNG is a durable artifact that can be reviewed without a dev server.
-- The same lab proposal can produce a new PNG after a tweak, so the review loop is
-  short.
-- The lab is lazy-loaded and dev-only, so the production bundle and the live game
-  are not affected.
+- Three options force a real design choice instead of a binary “yes/no”.
+- A permanent number makes approval unambiguous: `58 approved` cannot be confused
+  with “the second one” after the lab is reordered.
+- The 3-up sheet is fast to scan; the individual numbered PNGs are the durable
+  approval artifacts.
+- The ledger gives an audit trail from proposal to game commit.
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
-| `No proposal file at src/lab/proposals/<slug>.jsx` | Create the file from `_template.jsx` and register it in `index.js` |
-| `The lab did not report window.__LAB_READY__` | Check `failed.png` in the proposal folder, then run `npm start` and open the lab URL to see the console |
+| `Expected exactly 3 option numbers…` | Create proposals with `npm run proposal:new`; do not edit numbers by hand |
+| `The proposal numbers … do not match the ledger` | Use the numbers assigned in `src/lab/option-ledger.json` |
+| `No proposal file at src/lab/proposals/<slug>.jsx` | Run `npm run proposal:new -- <slug> "Title"` |
+| The lab did not report `window.__LAB_READY__` | Check `failed.png` in the proposal folder; run `npm start` and open the lab URL to see the console |
 | Black canvases | WebGL is unavailable in headless Chrome; run `agent-browser install` and retry, or open the lab interactively |
 | `agent-browser was not found` | `npm i -g agent-browser && agent-browser install` |
 | Port 3000 already in use | The script reuses it; if it is another app, use `--port 3001` |
-| PNG is cropped | Use `--width`/`--height`; the board is designed for 1600 × 900 and up |
+| PNG is cropped | Use `--width`/`--height`; the layouts are designed for 1600 × 900 and up |

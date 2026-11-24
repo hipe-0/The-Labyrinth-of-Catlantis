@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // scripts/visual-preview.mjs
 //
-// Capture a deterministic review PNG from the dev-only graphics lab.
+// Capture the numbered review PNGs for a visual proposal.
 //
-//   npm run preview -- wall-openings --open
+//   npm run preview -- wall-openings            # 56.png, 57.png, 58.png + sheet
+//   npm run preview -- wall-openings --option 58
 //
-// It reuses an already-running dev server, or starts one with BROWSER=none and
-// stops it afterwards. The output is:
-//   doc/proposals/<slug>/proposal.png
+// Each proposal has exactly three globally numbered options. The numbers are
+// assigned by `npm run proposal:new` and recorded in src/lab/option-ledger.json;
+// they are never reused. The output is:
+//   doc/proposals/<slug>/<number>.png
+//   doc/proposals/<slug>/proposal.png   (3-up review sheet)
 //   doc/proposals/<slug>/meta.json
 import { spawn, spawnSync } from 'node:child_process';
 import {
@@ -22,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_BASE_PATH = '/The-Labyrinth-of-Catlantis/';
+const LEDGER_PATH = join(ROOT, 'src', 'lab', 'option-ledger.json');
 
 const rawArgs = process.argv.slice(2);
 const flags = new Map();
@@ -33,6 +37,7 @@ const VALUE_FLAGS = new Set([
   'scale',
   'timeout',
   'out',
+  'option',
 ]);
 
 for (let index = 0; index < rawArgs.length; index += 1) {
@@ -71,6 +76,8 @@ const height = Number(flags.get('height') || 900);
 const scale = Number(flags.get('scale') || 2);
 const timeoutMs = Number(flags.get('timeout') || 120000);
 const outOverride = flags.get('out');
+const requestedOption =
+  flags.get('option') === undefined ? null : Number(flags.get('option'));
 
 const sleep = (ms) => new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 
@@ -83,19 +90,23 @@ function usage(message) {
     [
       'Usage: npm run preview -- <proposal-id> [options]',
       '',
+      'Captures all three numbered options plus a 3-up sheet by default.',
+      '',
       'Options:',
-      '  --open             Open the PNG when the capture finishes',
+      '  --option <number>  Capture only one option (for example --option 58)',
+      '  --open             Open the sheet (or the single option) when done',
       '  --port <number>    Dev server port (default: 3000)',
       '  --width <px>       Viewport width (default: 1600)',
       '  --height <px>      Viewport height (default: 900)',
       '  --scale <number>   Device scale factor (default: 2)',
-      '  --out <path>       Override the PNG output path',
-      '  --timeout <ms>     Maximum capture wait (default: 120000)',
+      '  --out <path>       Override the PNG path (requires --option)',
+      '  --timeout <ms>     Maximum wait per capture (default: 120000)',
       '  --no-server        Fail instead of starting a dev server',
       '  --keep-server      Leave a dev server started by this script running',
       '',
-      'Example:',
+      'Examples:',
       '  npm run preview -- wall-openings --open',
+      '  npm run preview -- wall-openings --option 58',
     ].join('\n')
   );
 }
@@ -113,8 +124,20 @@ for (const [name, value] of Object.entries({
   }
 }
 
+if (requestedOption !== null) {
+  if (!Number.isInteger(requestedOption) || requestedOption <= 0) {
+    usage('--option must be a positive option number.');
+    process.exit(1);
+  }
+}
+
 if (outOverride === true) {
   usage('--out needs a path.');
+  process.exit(1);
+}
+
+if (outOverride && requestedOption === null) {
+  usage('--out can only be used together with --option.');
   process.exit(1);
 }
 
@@ -179,8 +202,7 @@ function resolveAgentBrowser() {
 function agent(args, { timeout = 120000 } = {}) {
   // agent-browser's daemon keeps inherited stdio handles open. Piping output
   // makes spawnSync wait for the full timeout even though the CLI has exited,
-  // so pass the handles to NUL and rely on the exit code. Commands that truly
-  // need text (title, status) are read from the proposal source instead.
+  // so pass the handles to NUL and rely on the exit code.
   const result = spawnSync(resolveAgentBrowser(), args, {
     stdio: 'ignore',
     timeout,
@@ -339,22 +361,92 @@ function waitForLab(session) {
   );
 }
 
+function captureUrl(baseUrl, option) {
+  const url = new URL(baseUrl);
+  url.searchParams.set('lab', proposalId);
+
+  if (option) {
+    url.searchParams.set('option', String(option));
+  }
+
+  url.searchParams.set('shot', '1');
+  url.searchParams.set('t', String(Date.now()));
+
+  return url;
+}
+
 async function main() {
   const outputDir = join(ROOT, 'doc', 'proposals', proposalId);
   mkdirSync(outputDir, { recursive: true });
-
-  const pngPath = outOverride
-    ? resolve(ROOT, outOverride)
-    : join(outputDir, 'proposal.png');
-  const metaPath = join(outputDir, 'meta.json');
-
-  mkdirSync(dirname(pngPath), { recursive: true });
 
   const proposalSource = readFileSync(proposalFile, 'utf8');
   const proposalTitle =
     readProposalField(proposalSource, 'title') || proposalId;
   const proposalStatus =
     readProposalField(proposalSource, 'status') || 'awaiting-review';
+
+  const ledger = JSON.parse(readFileSync(LEDGER_PATH, 'utf8'));
+  const ledgerOptions = ledger.options
+    .filter((entry) => entry.proposal === proposalId)
+    .sort((a, b) => a.number - b.number);
+
+  if (ledgerOptions.length !== 3) {
+    throw new Error(
+      `Expected exactly 3 option numbers for "${proposalId}" in ` +
+        `src/lab/option-ledger.json, found ${ledgerOptions.length}. ` +
+        'Create proposals with npm run proposal:new.'
+    );
+  }
+
+  const optionNumbers = ledgerOptions.map((entry) => entry.number);
+  const sourceNumbers = [
+    ...new Set(
+      [...proposalSource.matchAll(/\bnumber:\s*(\d+)\s*,/g)].map((match) =>
+        Number(match[1])
+      )
+    ),
+  ].sort((a, b) => a - b);
+
+  if (
+    sourceNumbers.length !== optionNumbers.length ||
+    sourceNumbers.some((number, index) => number !== optionNumbers[index])
+  ) {
+    throw new Error(
+      `The proposal numbers (${sourceNumbers.join(', ') || 'none'}) do not match ` +
+        `the ledger (${optionNumbers.join(', ')}). Use the numbers assigned by ` +
+        'npm run proposal:new.'
+    );
+  }
+
+  if (requestedOption !== null && !optionNumbers.includes(requestedOption)) {
+    throw new Error(
+      `Option ${requestedOption} is not assigned to "${proposalId}". ` +
+        `Available: ${optionNumbers.join(', ')}.`
+    );
+  }
+
+  const numbersToCapture =
+    requestedOption === null ? optionNumbers : [requestedOption];
+
+  if (outOverride && numbersToCapture.length !== 1) {
+    throw new Error('--out requires --option.');
+  }
+
+  const pngPathFor = (number) => {
+    if (outOverride && number === numbersToCapture[0]) {
+      return resolve(ROOT, outOverride);
+    }
+
+    return join(outputDir, `${number}.png`);
+  };
+
+  const sheetPath = join(outputDir, 'proposal.png');
+  const metaPath = join(outputDir, 'meta.json');
+  const failedPath = join(outputDir, 'failed.png');
+
+  for (const number of numbersToCapture) {
+    mkdirSync(dirname(pngPathFor(number)), { recursive: true });
+  }
 
   let server = null;
   let baseUrl = await findBaseUrl();
@@ -397,12 +489,8 @@ async function main() {
 
   console.log(`[preview] dev server: ${baseUrl}`);
   console.log(`[preview] proposal:   ${proposalId}`);
+  console.log(`[preview] options:    ${optionNumbers.join(', ')}`);
   console.log(`[preview] viewport:   ${width}×${height} @${scale}x`);
-
-  const labUrl = new URL(baseUrl);
-  labUrl.searchParams.set('lab', proposalId);
-  labUrl.searchParams.set('shot', '1');
-  labUrl.searchParams.set('t', String(Date.now()));
 
   const session = `catlantis-preview-${proposalId}`
     .replace(/[^a-zA-Z0-9_-]/g, '-')
@@ -419,24 +507,81 @@ async function main() {
     String(height),
     String(scale),
   ]);
-  agent(['--session', session, 'open', labUrl.toString()]);
 
-  const ready = waitForLab(session);
+  const capture = (option) => {
+    const url = captureUrl(baseUrl, option);
+    agent(['--session', session, 'open', url.toString()]);
 
-  if (!ready) {
-    safeAgent(['--session', session, 'screenshot', join(outputDir, 'failed.png')]);
-    safeAgent(['--session', session, 'close']);
-    throw new Error(
-      'The lab did not report window.__LAB_READY__ before the timeout.' +
-        `\nA failure screenshot was saved to ${join(outputDir, 'failed.png')}.` +
-        '\nOpen the lab URL directly in a browser to see the console.'
-    );
+    if (!waitForLab(session)) {
+      safeAgent(['--session', session, 'screenshot', failedPath]);
+      throw new Error(
+        `The lab did not report window.__LAB_READY__ for ` +
+          `${option ? `option ${option}` : 'the 3-up sheet'}.` +
+          `\nA failure screenshot was saved to ${failedPath}.` +
+          '\nOpen the lab URL directly in a browser to see the console.'
+      );
+    }
+
+    return url;
+  };
+
+  const captured = [];
+
+  for (const number of numbersToCapture) {
+    const url = capture(number);
+    const pngPath = pngPathFor(number);
+    agent(['--session', session, 'screenshot', pngPath]);
+    captured.push({ number, pngPath, url });
+    console.log(`[preview] option ${number}:  ${pngPath}`);
   }
 
-  agent(['--session', session, 'screenshot', pngPath]);
+  let sheetUrl = null;
+
+  if (requestedOption === null) {
+    sheetUrl = capture(null);
+    agent(['--session', session, 'screenshot', sheetPath]);
+    console.log(`[preview] sheet:       ${sheetPath}`);
+  }
 
   safeAgent(['--session', session, 'close']);
   stopDevServer(server);
+
+  let previousMeta = null;
+
+  if (existsSync(metaPath)) {
+    try {
+      previousMeta = JSON.parse(readFileSync(metaPath, 'utf8'));
+    } catch {
+      previousMeta = null;
+    }
+  }
+
+  const relativePath = (path) =>
+    path.startsWith(ROOT)
+      ? path.slice(ROOT.length + 1).replaceAll('\\', '/')
+      : path;
+
+  const optionRecords = ledgerOptions.map((entry) => {
+    const pngPath = pngPathFor(entry.number);
+    const previous = previousMeta?.options?.find(
+      (option) => option.number === entry.number
+    );
+
+    return {
+      number: entry.number,
+      status: entry.status,
+      png: existsSync(pngPath)
+        ? relativePath(pngPath)
+        : previous?.png ?? relativePath(pngPath),
+    };
+  });
+
+  const primaryPng =
+    requestedOption === null ? sheetPath : pngPathFor(requestedOption);
+  const sheetRecord =
+    requestedOption === null
+      ? relativePath(sheetPath)
+      : previousMeta?.sheet ?? (existsSync(sheetPath) ? relativePath(sheetPath) : null);
 
   const meta = {
     proposal: proposalId,
@@ -444,10 +589,10 @@ async function main() {
     status: proposalStatus,
     capturedAt: new Date().toISOString(),
     viewport: { width, height, scale },
-    png: pngPath.startsWith(ROOT)
-      ? pngPath.slice(ROOT.length + 1).replaceAll('\\', '/')
-      : pngPath,
-    labUrl: labUrl.toString(),
+    options: optionRecords,
+    sheet: sheetRecord,
+    png: relativePath(primaryPng),
+    labUrl: (sheetUrl ?? captured[0].url).toString(),
     git: {
       branch: gitValue(['rev-parse', '--abbrev-ref', 'HEAD']),
       commit: gitValue(['rev-parse', '--short', 'HEAD']),
@@ -456,15 +601,13 @@ async function main() {
 
   writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`);
 
-  console.log(`[preview] PNG:        ${pngPath}`);
-  console.log(`[preview] meta:       ${metaPath}`);
-
+  console.log(`[preview] meta:        ${metaPath}`);
   console.log(
-    '\n[preview] Done. Review the PNG before changing game runtime files.'
+    '\n[preview] Done. Reply with the option number you approve (for example "58 approved").'
   );
 
   if (openPng) {
-    openFile(pngPath);
+    openFile(primaryPng);
   }
 
   if (server && keepServer) {

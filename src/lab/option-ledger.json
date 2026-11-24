@@ -1,0 +1,20 @@
+{
+  "nextNumber": 59,
+  "options": [
+    {
+      "number": 56,
+      "proposal": "wall-openings",
+      "status": "awaiting-review"
+    },
+    {
+      "number": 57,
+      "proposal": "wall-openings",
+      "status": "awaiting-review"
+    },
+    {
+      "number": 58,
+      "proposal": "wall-openings",
+      "status": "awaiting-review"
+    }
+  ]
+}

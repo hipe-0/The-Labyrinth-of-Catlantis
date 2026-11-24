@@ -127,8 +127,8 @@ The-Labyrinth-of-Catlantis/
 │   ├── RUNNING.md          # install, build, deploy, troubleshooting
 │   ├── TODO.md             # feature backlog and completion status
 │   ├── GEOMETRY_PROPOSAL.md# roofs/window openings proposal
-│   ├── VISUAL_WORKFLOW.md  # preview-first PNG lab workflow
-│   ├── proposals/          # in-engine visual proposals (PNG + notes)
+│   ├── VISUAL_WORKFLOW.md  # preview-first 3-option PNG workflow
+│   ├── proposals/          # 3 numbered options per visual proposal
 │   ├── mockups/            # horizon and sky visual proposals
 │   └── KNOWN_ISSUES.md     # bugs and rough edges in the current tree
 │
@@ -210,5 +210,5 @@ The-Labyrinth-of-Catlantis/
 5. [GEOMETRY_PROPOSAL.md](GEOMETRY_PROPOSAL.md) — initial roof/window engine proposal.
 6. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — bugs, regressions, and rough edges found in the
    current working tree, with suggested fixes.
-7. [VISUAL_WORKFLOW.md](VISUAL_WORKFLOW.md) — preview-first visual lab, deterministic
-   PNG capture, and the approval gate before game commits.
+7. [VISUAL_WORKFLOW.md](VISUAL_WORKFLOW.md) — three numbered visual options,
+   deterministic PNG capture, and the “NN approved” gate before game commits.

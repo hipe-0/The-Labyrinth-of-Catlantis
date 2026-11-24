@@ -18,6 +18,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
+    "proposal:new": "node scripts/new-visual-proposal.mjs",
     "preview": "node scripts/visual-preview.mjs",
     "predeploy": "npm run build",
     "deploy": "gh-pages --dotfiles --message \"Deploy React app to GitHub Pages\" -d build"
