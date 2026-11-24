@@ -21,7 +21,7 @@ const proposal = {
   id: 'buildings',
   title: 'Buildings inside the maze',
   subtitle:
-    'Five 1x1 sealed cells inserted before the maze is carved. Heights run 1.08–2.90 against the 1.0 walls. Three minimal treatments — the game still has no buildings.',
+    'Five 1x1 sealed cells inserted before the maze is carved. Building sides continue the 0.12 wall plane; heights run 1.08–2.90 against the 1.0 walls. The game still has no buildings.',
   camera,
   baseline: {
     label: 'Current',

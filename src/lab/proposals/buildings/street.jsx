@@ -23,6 +23,13 @@ import { getMazeWallSegments } from '../../../utils/mazeWalls';
 const GRID_WIDTH = 10;
 const GRID_HEIGHT = 7;
 
+// A wall is 0.12 thick and centred on the cell boundary. The building fills
+// the cell *plus* that wall volume, so its sides land exactly on the wall
+// planes and every abutting wall meets it flush.
+const BUILDING_SIZE = 1 + GAME_CONFIG.WALL.THICKNESS;
+const BUILDING_HALF = BUILDING_SIZE / 2;
+const WINDOW_OFFSET = BUILDING_HALF + 0.005;
+
 // Heights span the whole randomised 1.0–3.0 range, so one view shows a hut, a
 // house, mid-rises, and a tower. Every building is exactly one cell (1x1).
 // The back row descends left-to-right; the two short blocks sit in front.
@@ -140,13 +147,13 @@ function StreetWalls({ maze }) {
 }
 
 const FACE_LAYOUTS = [
-  { spreadAxis: 'x', rotationY: 0, x: 0, z: 0.505 },
-  { spreadAxis: 'x', rotationY: Math.PI, x: 0, z: -0.505 },
-  { spreadAxis: 'z', rotationY: Math.PI / 2, x: 0.505, z: 0 },
-  { spreadAxis: 'z', rotationY: -Math.PI / 2, x: -0.505, z: 0 },
+  { spreadAxis: 'x', rotationY: 0, x: 0, z: WINDOW_OFFSET },
+  { spreadAxis: 'x', rotationY: Math.PI, x: 0, z: -WINDOW_OFFSET },
+  { spreadAxis: 'z', rotationY: Math.PI / 2, x: WINDOW_OFFSET, z: 0 },
+  { spreadAxis: 'z', rotationY: -Math.PI / 2, x: -WINDOW_OFFSET, z: 0 },
 ];
 
-const WINDOW_COLUMNS = [-0.21, 0.21];
+const WINDOW_COLUMNS = [-0.23, 0.23];
 
 function WindowLights({ building }) {
   const windows = useMemo(() => {
@@ -200,6 +207,8 @@ function WindowLights({ building }) {
 const ROOF_COLOR = '#2C3450';
 
 function RoofCap({ building, pyramidal }) {
+  const capSize = BUILDING_SIZE + 0.06;
+
   if (pyramidal) {
     return (
       <mesh
@@ -208,7 +217,7 @@ function RoofCap({ building, pyramidal }) {
         castShadow
         receiveShadow
       >
-        <coneGeometry args={[0.78, 0.32, 4]} />
+        <coneGeometry args={[0.82, 0.32, 4]} />
         <meshStandardMaterial color={ROOF_COLOR} metalness={0} roughness={0.6} />
       </mesh>
     );
@@ -220,7 +229,7 @@ function RoofCap({ building, pyramidal }) {
       castShadow
       receiveShadow
     >
-      <boxGeometry args={[1.1, 0.1, 1.1]} />
+      <boxGeometry args={[capSize, 0.1, capSize]} />
       <meshStandardMaterial color={ROOF_COLOR} metalness={0} roughness={0.6} />
     </mesh>
   );
@@ -233,7 +242,7 @@ function Building({ building, index, treatment }) {
     <group position={[building.x, 0, building.z]}>
       <mesh
         position={[0, building.height / 2, 0]}
-        scale={[1, building.height, 1]}
+        scale={[BUILDING_SIZE, building.height, BUILDING_SIZE]}
         castShadow
         receiveShadow
       >
@@ -244,7 +253,7 @@ function Building({ building, index, treatment }) {
       <lineSegments
         geometry={UNIT_EDGES}
         position={[0, building.height / 2, 0]}
-        scale={[1, building.height, 1]}
+        scale={[BUILDING_SIZE, building.height, BUILDING_SIZE]}
       >
         <lineBasicMaterial color="#FFFFFF" linewidth={2} />
       </lineSegments>
