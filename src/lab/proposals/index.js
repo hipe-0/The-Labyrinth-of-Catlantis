@@ -3,9 +3,10 @@
 // Register each lab proposal here. Keeping the registry explicit means the lab
 // only bundles proposals that are meant to be reviewed, and the CLI can reject
 // an unknown slug before opening a browser.
+import buildings from './buildings';
 import wallOpenings from './wall-openings';
 
-export const PROPOSALS = [wallOpenings];
+export const PROPOSALS = [wallOpenings, buildings];
 
 export const getProposal = (id) =>
   PROPOSALS.find((proposal) => proposal.id === id);
