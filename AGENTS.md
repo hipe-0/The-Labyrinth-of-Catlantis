@@ -10,49 +10,43 @@
 
 - **Ask user permission before pushing.** Never push to the repo on your own initiative — especially not to `main` or `gh-pages`. The user must test the change in dev first and explicitly approve the push. Human in the loop: I will wait for your go-ahead before any push.
 
+- The developper likes simplicity and KISS keep it simple stupid. please keep your code clean and easy to update, maintain clean file structure. If bloated, clean it up. If code is mixing unrelated topics, split it clean into usable files or folders that don't overload the AI context window. If major simplifications can be made, ask user to plan this later.
+
 ## Visual change gate (mandatory)
 
-Visual work is **preview-first**: exactly **3 numbered options** → 3 option PNGs +
-a 3-up sheet → explicit **“NN approved”** → game commit → playtest. See
-`doc/VISUAL_WORKFLOW.md` for the full guide.
+Visual work is **preview-first**: exactly **3 numbered options** → 3 code+PNG pairs
+→ explicit **“NN approved”** → game commit → playtest. Keep it lean: no sheet, no
+`notes.md`, no `meta.json`, no option ledger. See `doc/VISUAL_WORKFLOW.md`.
 
 ### 1. Propose in the lab (no game files)
 
-- Every proposal has **exactly three options**, numbered globally. Allocate the
-  next three numbers with `npm run proposal:new -- <slug> "Title"`; never type or
-  reuse an option number by hand. The ledger is `src/lab/option-ledger.json`.
-- Register the proposal in `src/lab/proposals/index.js`, keep the baseline and all
-  three options on the same fixed camera, and add a `notes.md` with the option
-  table, status, changes, unchanged behaviour, and open decisions.
-- Capture with `npm run preview -- <slug> --open`. It writes
-  `doc/proposals/<slug>/<number>.png` for each option, a `proposal.png` 3-up sheet,
-  and `meta.json`.
-- Report the three option numbers, the three numbered PNG paths, the sheet, and
-  what changes. Do **not** describe the proposal as implemented.
+- Create `src/lab/proposals/<slug>/` with exactly three numbered option files:
+  `<number>.jsx`, each with its `<number>.png` beside it. `index.jsx` in the same
+  folder wires the baseline, camera, and the three options.
+- Use the next free numbers across all proposal folders; never reuse a number.
+- Capture with `npm run preview -- <slug> --open`. The PNGs land next to the code:
+  `src/lab/proposals/<slug>/<number>.png`.
+- Report the three numbers and three paths. Do **not** describe the proposal as
+  implemented.
 
 ### 2. Wait for explicit option approval
 
 - Treat only a clear “`NN approved`”, “go with `NN`”, or “implement `NN`” as
   approval. Silence, “interesting”, or a question is **not** approval.
-- Iterate in the lab and produce a new capture. Never edit game visuals “just to
-  try” an option.
-- Do not mark anything approved in the ledger until the user names an option
-  number.
+- Iterate in the lab and recapture. Never edit game visuals “just to try” an
+  option.
 - If a commit is needed before approval, it must be **lab-only**: `src/lab/**`,
-  `doc/proposals/**`, `scripts/visual-preview.mjs`, the `preview`/`proposal:new`
-  npm scripts, and docs. It must not touch `src/App.js`, `src/MazeScene.js`,
-  `src/components/**`, `src/config/**`, or `src/utils/**`. The only allowed
-  entry-point change is the dev-only `?lab=` switch in `src/index.js`; the normal
-  `<App />` path must stay intact.
+  `scripts/visual-preview.mjs`, and docs. It must not touch `src/App.js`,
+  `src/MazeScene.js`, `src/components/**`, `src/config/**`, or `src/utils/**`. The
+  only allowed entry-point change is the dev-only `?lab=` switch in
+  `src/index.js`; the normal `<App />` path must stay intact.
 
 ### 3. Commit to the game (after approval)
 
-- Mark the chosen option `approved` and the other two `not-selected` in
-  `src/lab/option-ledger.json`. Set `status: 'approved'` in the proposal file and
-  record `Approved option: NN — <label>` in `doc/proposals/<slug>/notes.md`.
-- Implement **only that option**. Do not smuggle in extra visual changes.
-- Keep the proposal and all PNGs in the repo as the review record; set
-  `Status: implemented — playtesting` in the notes and the ledger.
+- Promote **only the approved numbered variant** and the shared renderer it
+  imports. Do not include either of the other two options.
+- Delete the unselected numbered files and the proposal folder once the chosen
+  code is in the game. The game is the source of truth.
 - Add/update tests, run `CI=true npm test -- --watchAll=false` and
   `npm run build`, append the dated changelog line, then commit.
 - This game commit is the “step 2” the user validates against.
@@ -61,5 +55,3 @@ a 3-up sheet → explicit **“NN approved”** → game commit → playtest. Se
 
 - Ask the user to run `npm start` and test the game.
 - Do not push until the user explicitly approves the push (existing rule above).
-- After user confirmation, set the proposal `status`, the ledger, and the notes to
-  `verified — user-approved`.

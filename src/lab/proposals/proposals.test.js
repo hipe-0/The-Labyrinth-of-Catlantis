@@ -1,16 +1,7 @@
 import { PROPOSALS, getProposal } from './index';
-import optionLedger from '../option-ledger.json';
 
-const ALLOWED_OPTION_STATUSES = new Set([
-  'awaiting-review',
-  'approved',
-  'implemented',
-  'verified',
-  'not-selected',
-]);
-
-describe('visual lab proposal registry', () => {
-  test('every proposal has a baseline and exactly three numbered options', () => {
+describe('visual lab proposals', () => {
+  test('each proposal has a baseline and exactly three numbered options', () => {
     expect(PROPOSALS.length).toBeGreaterThan(0);
 
     const allNumbers = PROPOSALS.flatMap((proposal) =>
@@ -18,7 +9,6 @@ describe('visual lab proposal registry', () => {
     );
 
     expect(new Set(allNumbers).size).toBe(allNumbers.length);
-    expect(optionLedger.nextNumber).toBeGreaterThan(Math.max(...allNumbers));
 
     for (const proposal of PROPOSALS) {
       expect(getProposal(proposal.id)).toBe(proposal);
@@ -36,22 +26,7 @@ describe('visual lab proposal registry', () => {
         expect(option.label).toBeTruthy();
         expect(option.description).toBeTruthy();
         expect(typeof option.render).toBe('function');
-
-        const ledgerEntry = optionLedger.options.find(
-          (entry) => entry.number === option.number
-        );
-
-        expect(ledgerEntry).toBeTruthy();
-        expect(ledgerEntry.proposal).toBe(proposal.id);
-        expect(ALLOWED_OPTION_STATUSES.has(ledgerEntry.status)).toBe(true);
       }
     }
-  });
-
-  test('the option ledger never reuses a number', () => {
-    const numbers = optionLedger.options.map((entry) => entry.number);
-
-    expect(new Set(numbers).size).toBe(numbers.length);
-    expect(optionLedger.nextNumber).toBeGreaterThan(Math.max(...numbers));
   });
 });

@@ -128,7 +128,6 @@ The-Labyrinth-of-Catlantis/
 │   ├── TODO.md             # feature backlog and completion status
 │   ├── GEOMETRY_PROPOSAL.md# roofs/window openings proposal
 │   ├── VISUAL_WORKFLOW.md  # preview-first 3-option PNG workflow
-│   ├── proposals/          # 3 numbered options per visual proposal
 │   ├── mockups/            # horizon and sky visual proposals
 │   └── KNOWN_ISSUES.md     # bugs and rough edges in the current tree
 │
@@ -163,17 +162,23 @@ The-Labyrinth-of-Catlantis/
 │   │   ├── rocket.js            # collected-cat fly-up curve
 │   │   └── takeoff.js           # level-complete fly-up camera math
 │   │
-│   └── components/
-│       ├── StartScreen.js  # title screen and Start button
-│       ├── TouchControls.js# twin on-screen sticks + Jump button
-│       ├── CuteCat.js      # low-poly cat built from primitives
-│       ├── RocketCat.js    # collected-cat launch animation
-│       ├── ExitBeacon.js   # green cube + vertical light beam
-│       ├── Floor.js        # ground plane; receives/casts shadows
-│       ├── HorizonMountains.js # three decorative fractal rings
-│       ├── Moon.js         # two-sphere emissive moon on a tilted orbit
-│       ├── SkyGradient.js  # shader sky + moon-centred halo
-│       └── StarField.js    # 1000-point star sphere
+│   ├── components/
+│   │   ├── StartScreen.js  # title screen and Start button
+│   │   ├── TouchControls.js# twin on-screen sticks + Jump button
+│   │   ├── CuteCat.js      # low-poly cat built from primitives
+│   │   ├── RocketCat.js    # collected-cat launch animation
+│   │   ├── ExitBeacon.js   # green cube + vertical light beam
+│   │   ├── Floor.js        # ground plane; receives/casts shadows
+│   │   ├── HorizonMountains.js # three decorative fractal rings
+│   │   ├── Moon.js         # two-sphere emissive moon on a tilted orbit
+│   │   ├── SkyGradient.js  # shader sky + moon-centred halo
+│   │   └── StarField.js    # 1000-point star sphere
+│   │
+│   └── lab/                # dev-only visual proposal lab
+│       ├── GraphicsLab.jsx # review board + focus view
+│       ├── LabStage.jsx    # fixed camera, sky, moon glow, floor
+│       ├── mountainRing.jsx# ridged horizon-ring renderer
+│       └── proposals/      # <slug>/<number>.jsx + <number>.png
 │
 ├── build/                  # generated production build (git-ignored)
 └── node_modules/           # installed dependencies (git-ignored)
@@ -194,7 +199,7 @@ The-Labyrinth-of-Catlantis/
 | How does the start screen work? | `src/App.js`, `src/components/StartScreen.js` |
 | How are cats drawn? | `src/components/CuteCat.js` |
 | How is the app built/deployed? | `package.json`, `deploy.sh`, [RUNNING.md](RUNNING.md) |
-| How do I propose or review a visual change? | [VISUAL_WORKFLOW.md](VISUAL_WORKFLOW.md), `src/lab/`, `doc/proposals/` |
+| How do I propose or review a visual change? | [VISUAL_WORKFLOW.md](VISUAL_WORKFLOW.md), `src/lab/proposals/` |
 | What is next? | [TODO.md](TODO.md) |
 | What is currently broken? | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 

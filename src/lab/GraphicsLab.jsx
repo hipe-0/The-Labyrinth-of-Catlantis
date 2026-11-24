@@ -8,47 +8,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { LabViewport } from './LabStage';
 import { PROPOSALS, getProposal } from './proposals';
-import optionLedger from './option-ledger.json';
 import './lab.css';
-
-const STATUS_LABELS = {
-  'awaiting-review': 'AWAITING REVIEW',
-  approved: 'APPROVED — READY TO IMPLEMENT',
-  implemented: 'IMPLEMENTED — PLAYTESTING',
-  verified: 'VERIFIED',
-  rejected: 'REJECTED',
-};
-
-const OPTION_STATUS_LABELS = {
-  'awaiting-review': 'AWAITING REVIEW',
-  approved: 'APPROVED',
-  implemented: 'IMPLEMENTED',
-  verified: 'VERIFIED',
-  'not-selected': 'NOT SELECTED',
-};
-
-const OPTION_STATUS_SHORT = {
-  'awaiting-review': 'REVIEW',
-  approved: 'APPROVED',
-  implemented: 'IMPLEMENTED',
-  verified: 'VERIFIED',
-  'not-selected': 'NOT SELECTED',
-};
-
-const optionLedgerEntry = (number) =>
-  optionLedger.options.find((entry) => entry.number === number);
-
-const getOptionStatus = (number) =>
-  optionLedgerEntry(number)?.status ?? 'awaiting-review';
-
-const optionStatusLabel = (status) =>
-  OPTION_STATUS_LABELS[status] ?? String(status).toUpperCase();
-
-const optionStatusShort = (status) =>
-  OPTION_STATUS_SHORT[status] ?? String(status).toUpperCase();
-
-const isPositiveStatus = (status) =>
-  status === 'approved' || status === 'implemented' || status === 'verified';
 
 const dateStamp = () => {
   const now = new Date();
@@ -91,9 +51,8 @@ function ProposalIndex() {
       <main className="lab-index">
         {PROPOSALS.length === 0 && (
           <p className="lab-empty">
-            No proposals yet. Run{' '}
-            <code>npm run proposal:new -- &lt;slug&gt; "Title"</code> to allocate
-            the next three option numbers.
+            No proposals yet. Add a folder under{' '}
+            <code>src/lab/proposals/</code> with three numbered option files.
           </p>
         )}
 
@@ -104,8 +63,7 @@ function ProposalIndex() {
             <span className="lab-index-card-meta">
               <code>{proposal.id}</code>
               <span>
-                OPTIONS {proposal.options.map((option) => option.number).join(' · ')} —{' '}
-                {STATUS_LABELS[proposal.status] ?? proposal.status}
+                OPTIONS {proposal.options.map((option) => option.number).join(' · ')} — AWAITING REVIEW
               </span>
             </span>
           </a>
@@ -181,7 +139,6 @@ export function GraphicsLab({ params: passedParams }) {
           description: proposal.baseline.description,
           render: proposal.baseline.render,
           camera: proposal.camera,
-          status: 'baseline',
         },
       ];
     }
@@ -197,7 +154,6 @@ export function GraphicsLab({ params: passedParams }) {
           description: focusedOption.description,
           render: focusedOption.render,
           camera: proposal.camera,
-          status: getOptionStatus(focusedOption.number),
         },
       ];
     }
@@ -211,7 +167,6 @@ export function GraphicsLab({ params: passedParams }) {
       description: option.description,
       render: option.render,
       camera: proposal.camera,
-      status: getOptionStatus(option.number),
     }));
   }, [proposal, mode, focusedOption]);
 
@@ -276,13 +231,9 @@ export function GraphicsLab({ params: passedParams }) {
     window.__LAB_INFO__ = {
       id: proposal.id,
       title: proposal.title,
-      status: proposal.status,
       mode,
       focused: mode === 'focus' ? focusedOption?.number ?? null : null,
-      options: proposal.options.map((option) => ({
-        number: option.number,
-        status: getOptionStatus(option.number),
-      })),
+      options: proposal.options.map((option) => option.number),
       shot,
     };
 
@@ -304,16 +255,14 @@ export function GraphicsLab({ params: passedParams }) {
     return <MissingProposal id={proposal.id} />;
   }
 
-  const statusLabel = STATUS_LABELS[proposal.status] ?? proposal.status;
   const today = dateStamp();
   const optionNumbers = proposal.options
     .map((option) => option.number)
     .join(' · ');
   const pngPath =
     mode === 'focus'
-      ? `doc/proposals/${proposal.id}/${focusedOption.number}.png`
-      : `doc/proposals/${proposal.id}/proposal.png`;
-  const focusedStatus = getOptionStatus(focusedOption.number);
+      ? `src/lab/proposals/${proposal.id}/${focusedOption.number}.png`
+      : `src/lab/proposals/${proposal.id}/`;
 
   return (
     <div className={`lab-root${shot ? ' lab-root--shot' : ''}`}>
@@ -325,9 +274,7 @@ export function GraphicsLab({ params: passedParams }) {
         </div>
 
         <div className="lab-meta">
-          <div className={`lab-status${isPositiveStatus(proposal.status) ? ' is-approved' : ''}`}>
-            {statusLabel}
-          </div>
+          <div className="lab-status">AWAITING REVIEW</div>
           <div className="lab-meta-line">PROPOSAL <code>{proposal.id}</code></div>
           <div className="lab-meta-line">
             {mode === 'focus' ? (
@@ -385,12 +332,8 @@ export function GraphicsLab({ params: passedParams }) {
             <div className="lab-focus-kicker">OPTION</div>
             <div className="lab-focus-number">{focusedOption.number}</div>
             <h2 className="lab-focus-label">{focusedOption.label}</h2>
-            <div
-              className={`lab-option-status lab-focus-status${
-                isPositiveStatus(focusedStatus) ? ' is-approved' : ''
-              }`}
-            >
-              {optionStatusLabel(focusedStatus)}
+            <div className="lab-option-status lab-focus-status">
+              AWAITING REVIEW
             </div>
             <p className="lab-focus-description">
               {focusedOption.description}
@@ -427,38 +370,26 @@ export function GraphicsLab({ params: passedParams }) {
           }`}
           style={{ '--variant-count': activeViews.length }}
         >
-          {activeViews.map((view, index) => {
-            const status = view.status ?? 'awaiting-review';
-
-            return (
-              <section className="lab-panel" key={view.key}>
-                <div className="lab-panel-head">
-                  <span className="lab-panel-index">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span
-                    className={`lab-dot${
-                      view.kind === 'current' ? ' is-current' : ' is-proposed'
-                    }`}
-                  />
-                  <span className="lab-variant-label">
-                    {view.kind === 'option'
-                      ? `OPTION ${view.number}`
-                      : 'CURRENT'}
-                  </span>
-                  <span className="lab-variant-tag">
-                    {view.kind === 'option' ? view.label : view.tag}
-                  </span>
-                  <span
-                    className={`lab-option-status${
-                      isPositiveStatus(status) ? ' is-approved' : ''
-                    }`}
-                  >
-                    {view.kind === 'current'
-                      ? 'BASELINE'
-                      : optionStatusShort(status)}
-                  </span>
-                </div>
+          {activeViews.map((view, index) => (
+            <section className="lab-panel" key={view.key}>
+              <div className="lab-panel-head">
+                <span className="lab-panel-index">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span
+                  className={`lab-dot${
+                    view.kind === 'current' ? ' is-current' : ' is-proposed'
+                  }`}
+                />
+                <span className="lab-variant-label">
+                  {view.kind === 'option'
+                    ? `OPTION ${view.number}`
+                    : 'CURRENT'}
+                </span>
+                <span className="lab-variant-tag">
+                  {view.kind === 'option' ? view.label : view.tag}
+                </span>
+              </div>
 
                 <div className="lab-canvas-wrap">
                   <LabViewport
@@ -472,38 +403,8 @@ export function GraphicsLab({ params: passedParams }) {
 
                 <p className="lab-caption">{view.description}</p>
               </section>
-            );
-          })}
+            ))}
         </main>
-      )}
-
-      {!shot && proposal.notes && (
-        <section className="lab-notes">
-          <article>
-            <h2>Changes</h2>
-            <ul>
-              {proposal.notes.changed.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </article>
-          <article>
-            <h2>Unchanged</h2>
-            <ul>
-              {proposal.notes.unchanged.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </article>
-          <article>
-            <h2>Open decisions</h2>
-            <ul>
-              {proposal.notes.decisions.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </article>
-        </section>
       )}
 
       <footer className="lab-footer">

@@ -113,12 +113,6 @@
   letter-spacing: 0.14em;
 }
 
-.lab-status.is-approved {
-  border-color: rgba(125, 227, 189, 0.55);
-  color: var(--lab-mint);
-  background: rgba(125, 227, 189, 0.07);
-}
-
 .lab-meta-line {
   white-space: nowrap;
 }
@@ -239,11 +233,6 @@
   font-size: 8.5px;
   letter-spacing: 0.12em;
   white-space: nowrap;
-}
-
-.lab-option-status.is-approved {
-  border-color: rgba(125, 227, 189, 0.5);
-  color: var(--lab-mint);
 }
 
 .lab-board--single {
@@ -381,43 +370,6 @@
   position: relative;
   overflow: hidden;
   background: #05070f;
-}
-
-/* ---------- notes (interactive only) ---------- */
-
-.lab-notes {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-  padding: 2px 32px 30px;
-}
-
-.lab-notes article {
-  border-top: 1px solid var(--lab-line);
-  padding-top: 10px;
-}
-
-.lab-notes h2 {
-  margin: 0 0 7px;
-  color: var(--lab-gold);
-  font-family: 'Cascadia Mono', 'SFMono-Regular', Consolas, monospace;
-  font-size: 9.5px;
-  font-weight: 400;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.lab-notes ul {
-  margin: 0;
-  padding: 0 0 0 15px;
-  color: var(--lab-muted);
-  font-size: 11.5px;
-  line-height: 1.5;
-}
-
-.lab-notes li + li {
-  margin-top: 5px;
 }
 
 /* ---------- footer ---------- */
@@ -603,11 +555,6 @@
 
   .lab-root:not(.lab-root--shot) .lab-focus-stage {
     min-height: 420px;
-  }
-
-  .lab-notes {
-    grid-template-columns: 1fr;
-    padding: 0 20px 28px;
   }
 
   .lab-footer {

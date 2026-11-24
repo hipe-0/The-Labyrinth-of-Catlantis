@@ -12,7 +12,7 @@
 /build
 
 # visual lab failure captures
-/doc/proposals/**/failed.png
+/src/lab/proposals/**/failed.png
 
 # misc
 .DS_Store

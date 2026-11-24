@@ -78,9 +78,8 @@ const createRingGeometry = (ring, span, frequency) => {
   const heights = normalizedHeights(points, profile, ring.HEIGHT, span);
 
   const wallPositions = [];
-  const wallIndices = [];
   const bandPositions = [];
-  const bandIndices = [];
+  const indices = [];
 
   points.forEach((point, index) => {
     wallPositions.push(point.x, 0, point.z);
@@ -95,42 +94,27 @@ const createRingGeometry = (ring, span, frequency) => {
     bandPositions.push(point.x, heights[index], point.z);
   });
 
-  points.forEach((point, index) => {
+  for (let index = 0; index < points.length; index += 1) {
     const next = (index + 1) % points.length;
+
+    if (heights[index] <= 0 && heights[next] <= 0) {
+      continue;
+    }
+
     const bottom = index * 2;
     const top = bottom + 1;
     const nextBottom = next * 2;
     const nextTop = nextBottom + 1;
 
-    if (heights[index] > 0 || heights[next] > 0) {
-      wallIndices.push(
-        bottom,
-        nextBottom,
-        nextTop,
-        bottom,
-        nextTop,
-        top
-      );
-    }
-
-    if (heights[index] > 0 || heights[next] > 0) {
-      bandIndices.push(
-        bottom,
-        nextBottom,
-        nextTop,
-        bottom,
-        nextTop,
-        top
-      );
-    }
-  });
+    indices.push(bottom, nextBottom, nextTop, bottom, nextTop, top);
+  }
 
   const wallGeometry = new THREE.BufferGeometry();
   wallGeometry.setAttribute(
     'position',
     new THREE.Float32BufferAttribute(wallPositions, 3)
   );
-  wallGeometry.setIndex(wallIndices);
+  wallGeometry.setIndex(indices);
   wallGeometry.computeVertexNormals();
 
   const topBandGeometry = new THREE.BufferGeometry();
@@ -138,7 +122,7 @@ const createRingGeometry = (ring, span, frequency) => {
     'position',
     new THREE.Float32BufferAttribute(bandPositions, 3)
   );
-  topBandGeometry.setIndex(bandIndices);
+  topBandGeometry.setIndex(indices.slice());
 
   return { ring, wallGeometry, topBandGeometry };
 };
