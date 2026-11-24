@@ -236,9 +236,10 @@ Physical controllers use the standard Gamepad API. `src/utils/gamepad.js` polls
 `navigator.getGamepads()` every frame, maps the left stick to movement, the right
 stick to look, and the primary face button (`A` / Cross) to a one-shot jump. No
 pairing UI or listeners are needed; reconnecting is detected by the next poll. A
-larger `INPUT.GAMEPAD_DEAD_ZONE` (0.2) absorbs stick drift. Keyboard, touch, and
-gamepad input can contribute at the same time; the combined movement vector is
-clamped to unit length.
+larger `INPUT.GAMEPAD_DEAD_ZONE` (0.2) absorbs stick drift, and controller look
+uses its own faster rates (`GAMEPAD_LOOK_YAW_RATE` / `GAMEPAD_LOOK_PITCH_RATE`,
+double the touch rates). Keyboard, touch, and gamepad input can contribute at
+the same time; the combined movement vector is clamped to unit length.
 
 ### Fixed timestep
 

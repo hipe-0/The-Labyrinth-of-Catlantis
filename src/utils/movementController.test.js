@@ -263,6 +263,23 @@ describe('movementController analog movement', () => {
     expect(lookPlayer.rotation).toBeLessThan(0);
   });
 
+  it('turns twice as fast with the physical gamepad as with touch', () => {
+    const touchPlayer = createPlayer();
+    const touchController = createController({ player: touchPlayer });
+
+    touchController.setLookInput(1, 0);
+    runFrames(touchController, touchPlayer, 30);
+
+    const padPlayer = createPlayer();
+    const padController = createController({ player: padPlayer });
+
+    padController.setGamepadInput(0, 0, 1, 0);
+    runFrames(padController, padPlayer, 30);
+
+    expect(touchPlayer.rotation).toBeLessThan(0);
+    expect(padPlayer.rotation).toBeCloseTo(touchPlayer.rotation * 2, 5);
+  });
+
   it('ignores gamepad stick drift inside the dead zone', () => {
     const player = createPlayer({ x: 7, y: 7, rotation: 0 });
     const controller = createController({

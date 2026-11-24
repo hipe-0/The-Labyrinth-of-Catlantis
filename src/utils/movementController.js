@@ -183,22 +183,21 @@ export const createMovementController = (
       gamepadLook.y,
       INPUT.GAMEPAD_DEAD_ZONE
     );
-    // Both sticks may be used at once; clamp the combined rate to full tilt.
-    const look = applyRadialDeadZone(
-      analogLook.x + padLook.x,
-      analogLook.y + padLook.y,
-      0
-    );
+    // Physical controllers use a faster rate than the touch sticks.
+    const yawRate =
+      analogLook.x * INPUT.LOOK_STICK_YAW_RATE +
+      padLook.x * INPUT.GAMEPAD_LOOK_YAW_RATE;
+    const pitchRate =
+      analogLook.y * INPUT.LOOK_STICK_PITCH_RATE +
+      padLook.y * INPUT.GAMEPAD_LOOK_PITCH_RATE;
 
     player.rotation = wrapAngle(
-      player.rotation +
-        pendingYaw -
-        look.x * INPUT.LOOK_STICK_YAW_RATE * frameDelta
+      player.rotation + pendingYaw - yawRate * frameDelta
     );
 
     const pitch = toFinite(player.pitch) + pendingPitch;
     player.pitch = clamp(
-      pitch + look.y * INPUT.LOOK_STICK_PITCH_RATE * frameDelta,
+      pitch + pitchRate * frameDelta,
       -INPUT.PITCH_LIMIT,
       INPUT.PITCH_LIMIT
     );

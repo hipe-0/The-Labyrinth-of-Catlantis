@@ -202,8 +202,10 @@ GAME_CONFIG = {
   INPUT: {
     STICK_DEAD_ZONE: 0.18,      // radial dead zone for both touch sticks
     GAMEPAD_DEAD_ZONE: 0.2,     // dead zone for physical controller axes
-    LOOK_STICK_YAW_RATE: 2.0,   // radians/second at full right-stick deflection
+    LOOK_STICK_YAW_RATE: 2.0,   // radians/second at full touch-stick deflection
     LOOK_STICK_PITCH_RATE: 1.2,
+    GAMEPAD_LOOK_YAW_RATE: 4.0, // physical controllers turn twice as fast
+    GAMEPAD_LOOK_PITCH_RATE: 2.4,
     MOUSE_SENSITIVITY: 0.0022,  // radians per pixel of pointer-locked movement
     PITCH_LIMIT: Math.PI / 3    // ±60° vertical look
   },

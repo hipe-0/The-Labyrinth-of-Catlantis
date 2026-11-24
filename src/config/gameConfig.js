@@ -22,8 +22,10 @@ export const GAME_CONFIG = {
   INPUT: {
     STICK_DEAD_ZONE: 0.18, // Radial dead zone so resting thumbs do not drift
     GAMEPAD_DEAD_ZONE: 0.2, // Slightly larger: physical sticks drift more than glass
-    LOOK_STICK_YAW_RATE: 2.0, // Radians/second at full right-stick deflection
-    LOOK_STICK_PITCH_RATE: 1.2, // Radians/second vertical look rate
+    LOOK_STICK_YAW_RATE: 2.0, // Radians/second at full touch-stick deflection
+    LOOK_STICK_PITCH_RATE: 1.2, // Radians/second vertical touch look rate
+    GAMEPAD_LOOK_YAW_RATE: 4.0, // Physical controllers turn twice as fast
+    GAMEPAD_LOOK_PITCH_RATE: 2.4,
     MOUSE_SENSITIVITY: 0.0022, // Radians per pixel of pointer-locked movement
     PITCH_LIMIT: Math.PI / 3, // 60° up/down; keeps the horizon readable
   },
