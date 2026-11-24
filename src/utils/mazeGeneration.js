@@ -18,6 +18,43 @@ const DIRECTIONS = [
 
 const createCell = () => ({ walls: ALL_WALLS });
 
+// Buildings are reserved before carving. Their cells keep every wall, so the
+// player collides with them exactly like a cell that is sealed on all sides.
+const placeBuildings = (maze, exitX, exitY) => {
+  const { COUNT, MIN_HEIGHT, MAX_HEIGHT } = GAME_CONFIG.BUILDINGS;
+  const mazeWidth = maze[0].length;
+  const mazeHeight = maze.length;
+  const buildings = [];
+  const taken = new Set([`1,1`, `${exitX},${exitY}`]);
+  const maxAttempts = mazeWidth * mazeHeight * 2;
+  let attempts = 0;
+
+  while (buildings.length < COUNT && attempts < maxAttempts) {
+    attempts += 1;
+
+    const x = Math.floor(Math.random() * (mazeWidth - 2)) + 1;
+    const z = Math.floor(Math.random() * (mazeHeight - 2)) + 1;
+    const key = `${x},${z}`;
+
+    if (taken.has(key)) {
+      continue;
+    }
+
+    taken.add(key);
+    maze[z][x].building = true;
+
+    buildings.push({
+      x,
+      z,
+      height: MIN_HEIGHT + Math.random() * (MAX_HEIGHT - MIN_HEIGHT),
+      // Alternate the cap so every level shows both roof shapes.
+      roof: buildings.length % 2 === 0 ? 'flat' : 'pyramid',
+    });
+  }
+
+  return buildings;
+};
+
 export const createEmptyMaze = (width, height) => {
   return Array(height).fill().map(() =>
     Array(width).fill().map(() => createCell())
@@ -63,6 +100,7 @@ const carvePassages = (maze, startX, startY) => {
 
       if (
         isValidMazeCoordinate(maze, nextX, nextZ) &&
+        !maze[nextZ][nextX].building &&
         !visited.has(key)
       ) {
         removeWall(maze[current.z][current.x], direction.wall);
@@ -98,15 +136,25 @@ const openRoomArea = (maze, startX, startY, roomWidth, roomHeight) => {
   for (let z = startY; z < startY + roomHeight; z += 1) {
     for (let x = startX; x < startX + roomWidth; x += 1) {
       if (x + 1 < startX + roomWidth) {
+        const west = maze[z][x];
         const east = maze[z][x + 1];
-        removeWall(maze[z][x], WALL_EAST);
-        removeWall(east, WALL_WEST);
+
+        // A room flows around a building: never open a building's sealed
+        // walls, so the room becomes a plaza with a solid block in it.
+        if (!west.building && !east.building) {
+          removeWall(west, WALL_EAST);
+          removeWall(east, WALL_WEST);
+        }
       }
 
       if (z + 1 < startY + roomHeight) {
+        const north = maze[z][x];
         const south = maze[z + 1][x];
-        removeWall(maze[z][x], WALL_SOUTH);
-        removeWall(south, WALL_NORTH);
+
+        if (!north.building && !south.building) {
+          removeWall(north, WALL_SOUTH);
+          removeWall(south, WALL_NORTH);
+        }
       }
     }
   }
@@ -141,6 +189,7 @@ export const placeCats = (maze) => {
       x > 0 && x < width - 1 &&
       y > 0 && y < height - 1 &&
       !(x === 1 && y === 1) &&
+      !maze[y][x].building &&
       !cats.some((cat) => cat.x === x && cat.y === y)
     ) {
       cats.push({
@@ -160,14 +209,18 @@ export const generateMaze = () => {
   const { MAZE_WIDTH, MAZE_HEIGHT } = GAME_CONFIG;
   const maze = createEmptyMaze(MAZE_WIDTH, MAZE_HEIGHT);
 
-  carvePassages(maze, 1, 1);
-
   const exitX = MAZE_WIDTH - 2;
   const exitY = MAZE_HEIGHT - 2;
+
+  // Buildings go in first; the backtracker and rooms then flow around them.
+  const buildings = placeBuildings(maze, exitX, exitY);
+
+  carvePassages(maze, 1, 1);
+
   maze[exitY][exitX].exit = true;
 
   createRooms(maze, Math.floor(Math.random() * 3) + 3);
   const cats = placeCats(maze);
 
-  return { maze, exitX, exitY, cats };
+  return { maze, exitX, exitY, cats, buildings };
 };

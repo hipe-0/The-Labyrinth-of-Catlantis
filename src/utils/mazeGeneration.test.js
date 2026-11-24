@@ -1,4 +1,6 @@
+import { GAME_CONFIG } from '../config/gameConfig';
 import {
+  ALL_WALLS,
   generateMaze,
   getStartRotation,
   hasWall,
@@ -26,7 +28,9 @@ const wallForRotation = (rotation) => {
   return WALL_NORTH;
 };
 
-const reachableCellCount = (maze) => {
+// Every cell reachable on foot from the start. Building cells are sealed, so
+// they can never appear in this set.
+const reachableCells = (maze) => {
   const startX = 1;
   const startZ = 1;
   const queue = [[startX, startZ]];
@@ -51,7 +55,7 @@ const reachableCellCount = (maze) => {
     }
   }
 
-  return visited.size;
+  return visited;
 };
 
 describe('edge-based maze generation', () => {
@@ -64,11 +68,18 @@ describe('edge-based maze generation', () => {
     }
   });
 
-  it('keeps every cell reachable from the start', () => {
-    for (let i = 0; i < 25; i += 1) {
-      const { maze } = generateMaze();
+  it('keeps every open cell reachable and the exit reachable', () => {
+    for (let i = 0; i < 100; i += 1) {
+      const { maze, exitX, exitY, buildings } = generateMaze();
+      const reachable = reachableCells(maze);
+      const openCellCount = maze.length * maze[0].length - buildings.length;
 
-      expect(reachableCellCount(maze)).toBe(maze.length * maze[0].length);
+      expect(reachable.size).toBe(openCellCount);
+      expect(reachable.has(`${exitX},${exitY}`)).toBe(true);
+
+      for (const building of buildings) {
+        expect(reachable.has(`${building.x},${building.z}`)).toBe(false);
+      }
     }
   });
 
@@ -88,20 +99,51 @@ describe('edge-based maze generation', () => {
     }
   });
 
-  it('places six unique cats in the interior', () => {
-    const { maze, cats } = generateMaze();
-    const width = maze[0].length;
-    const height = maze.length;
-    const keys = new Set(cats.map((cat) => `${cat.x},${cat.y}`));
+  it('places randomised buildings as sealed interior cells', () => {
+    const { COUNT, MIN_HEIGHT, MAX_HEIGHT } = GAME_CONFIG.BUILDINGS;
 
-    expect(cats).toHaveLength(6);
-    expect(keys.size).toBe(cats.length);
+    for (let i = 0; i < 50; i += 1) {
+      const { maze, exitX, exitY, buildings } = generateMaze();
+      const width = maze[0].length;
+      const height = maze.length;
+      const keys = new Set(buildings.map((b) => `${b.x},${b.z}`));
 
-    for (const cat of cats) {
-      expect(cat.x).toBeGreaterThan(0);
-      expect(cat.x).toBeLessThan(width - 1);
-      expect(cat.y).toBeGreaterThan(0);
-      expect(cat.y).toBeLessThan(height - 1);
+      expect(buildings).toHaveLength(COUNT);
+      expect(keys.size).toBe(buildings.length);
+
+      for (const building of buildings) {
+        expect(building.x).toBeGreaterThan(0);
+        expect(building.x).toBeLessThan(width - 1);
+        expect(building.z).toBeGreaterThan(0);
+        expect(building.z).toBeLessThan(height - 1);
+        expect(building.x === 1 && building.z === 1).toBe(false);
+        expect(building.x === exitX && building.z === exitY).toBe(false);
+        expect(building.height).toBeGreaterThanOrEqual(MIN_HEIGHT);
+        expect(building.height).toBeLessThanOrEqual(MAX_HEIGHT);
+        expect(['flat', 'pyramid']).toContain(building.roof);
+        expect(maze[building.z][building.x].building).toBe(true);
+        expect(maze[building.z][building.x].walls).toBe(ALL_WALLS);
+      }
+    }
+  });
+
+  it('places six unique cats in the interior, never inside a building', () => {
+    for (let i = 0; i < 25; i += 1) {
+      const { maze, cats } = generateMaze();
+      const width = maze[0].length;
+      const height = maze.length;
+      const keys = new Set(cats.map((cat) => `${cat.x},${cat.y}`));
+
+      expect(cats).toHaveLength(6);
+      expect(keys.size).toBe(cats.length);
+
+      for (const cat of cats) {
+        expect(cat.x).toBeGreaterThan(0);
+        expect(cat.x).toBeLessThan(width - 1);
+        expect(cat.y).toBeGreaterThan(0);
+        expect(cat.y).toBeLessThan(height - 1);
+        expect(maze[cat.y][cat.x].building).toBeUndefined();
+      }
     }
   });
 });

@@ -17,6 +17,7 @@ import { Moon } from './components/Moon';
 import { Floor } from './components/Floor';
 import { HorizonMountains } from './components/HorizonMountains';
 import { ExitBeacon } from './components/ExitBeacon';
+import { Building } from './components/Building';
 
 const MAZE_CENTER = (GAME_CONFIG.MAZE_WIDTH - 1) / 2;
 const { SHADOW, PLAYER, CAMERA, LEVEL, WALL } = GAME_CONFIG;
@@ -43,7 +44,7 @@ export function MazeScene({
 
   const [level, setLevel] = useState(1);
   const [mazeData, setMazeData] = useState(() => generateMaze());
-  const { maze: generatedMaze, exitX, exitY, cats } = mazeData;
+  const { maze: generatedMaze, exitX, exitY, cats, buildings = [] } = mazeData;
   const startRotation = getStartRotation(generatedMaze);
 
   const playerRef = useRef({
@@ -515,6 +516,13 @@ export function MazeScene({
               current.filter((item) => item.index !== cat.index)
             )
           }
+        />
+      ))}
+
+      {buildings.map((building) => (
+        <Building
+          key={`building-${building.x}-${building.z}`}
+          building={building}
         />
       ))}
 

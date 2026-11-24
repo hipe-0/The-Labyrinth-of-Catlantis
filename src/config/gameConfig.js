@@ -58,6 +58,16 @@ export const GAME_CONFIG = {
     HEIGHT: 1,
   },
 
+  // Buildings are inserted before the maze is carved. Each one seals a single
+  // cell (walls on all four sides) and is rendered as a solid block that
+  // occupies the cell plus its wall volume. Heights are randomised per level.
+  BUILDINGS: {
+    COUNT: 5,
+    MIN_HEIGHT: 1,
+    MAX_HEIGHT: 3,
+    ROOF_COLOR: '#2C3450',
+  },
+
   // Cat pickup reward animation
   CAT_ROCKET: {
     DELAY: 0.25, // Short crouch before the launch
