@@ -127,6 +127,8 @@ The-Labyrinth-of-Catlantis/
 │   ├── RUNNING.md          # install, build, deploy, troubleshooting
 │   ├── TODO.md             # feature backlog and completion status
 │   ├── GEOMETRY_PROPOSAL.md# roofs/window openings proposal
+│   ├── VISUAL_WORKFLOW.md  # preview-first PNG lab workflow
+│   ├── proposals/          # in-engine visual proposals (PNG + notes)
 │   ├── mockups/            # horizon and sky visual proposals
 │   └── KNOWN_ISSUES.md     # bugs and rough edges in the current tree
 │
@@ -192,6 +194,7 @@ The-Labyrinth-of-Catlantis/
 | How does the start screen work? | `src/App.js`, `src/components/StartScreen.js` |
 | How are cats drawn? | `src/components/CuteCat.js` |
 | How is the app built/deployed? | `package.json`, `deploy.sh`, [RUNNING.md](RUNNING.md) |
+| How do I propose or review a visual change? | [VISUAL_WORKFLOW.md](VISUAL_WORKFLOW.md), `src/lab/`, `doc/proposals/` |
 | What is next? | [TODO.md](TODO.md) |
 | What is currently broken? | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) |
 
@@ -207,3 +210,5 @@ The-Labyrinth-of-Catlantis/
 5. [GEOMETRY_PROPOSAL.md](GEOMETRY_PROPOSAL.md) — initial roof/window engine proposal.
 6. [KNOWN_ISSUES.md](KNOWN_ISSUES.md) — bugs, regressions, and rough edges found in the
    current working tree, with suggested fixes.
+7. [VISUAL_WORKFLOW.md](VISUAL_WORKFLOW.md) — preview-first visual lab, deterministic
+   PNG capture, and the approval gate before game commits.
