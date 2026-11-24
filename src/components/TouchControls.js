@@ -46,6 +46,7 @@ function Stick({ label, onChange, testId }) {
   const baseRef = useRef(null);
   const knobRef = useRef(null);
   const pointerIdRef = useRef(null);
+  const originRef = useRef(null);
   const onChangeRef = useRef(onChange);
   const resetStickRef = useRef(null);
 
@@ -53,6 +54,7 @@ function Stick({ label, onChange, testId }) {
 
   const resetStick = () => {
     pointerIdRef.current = null;
+    originRef.current = null;
 
     if (knobRef.current) {
       knobRef.current.style.transform = 'translate(-50%, -50%)';
@@ -86,30 +88,66 @@ function Stick({ label, onChange, testId }) {
     };
   }, []);
 
-  const updateFromPointer = (event) => {
+  // Geometry is measured once per gesture. The knob visually follows the
+  // thumb, while the analog value is always relative to the press point.
+  const getStickMetrics = () => {
     const base = baseRef.current;
 
     if (!base) {
-      return;
+      return null;
     }
 
     const rect = base.getBoundingClientRect();
     const radius = rect.width / 2;
     // Keep the whole knob inside the base, not just its centre.
     const knobRadius = rect.width * 0.22;
-    const maxOffset = Math.max(radius - knobRadius, 1);
+
+    return {
+      centerX: rect.left + radius,
+      centerY: rect.top + radius,
+      maxOffset: Math.max(radius - knobRadius, 1),
+    };
+  };
+
+  const positionKnob = (clientX, clientY, metrics) => {
+    if (!knobRef.current || !metrics) {
+      return;
+    }
+
+    const dx = clientX - metrics.centerX;
+    const dy = clientY - metrics.centerY;
+    const distance = Math.hypot(dx, dy);
+    const scale =
+      distance > metrics.maxOffset ? metrics.maxOffset / distance : 1;
+
+    knobRef.current.style.transform =
+      `translate(-50%, -50%) translate(${dx * scale}px, ${dy * scale}px)`;
+  };
+
+  const updateFromPointer = (event) => {
+    const origin = originRef.current;
+
+    if (!origin) {
+      return;
+    }
+
+    const metrics = getStickMetrics();
+
+    if (!metrics) {
+      return;
+    }
+
+    positionKnob(event.clientX, event.clientY, metrics);
+
+    // Pressing establishes a fresh origin, so the vector is measured from the
+    // thumb's landing point rather than the fixed centre of the pad.
     const vector = getStickVector(
       event.clientX,
       event.clientY,
-      rect.left + radius,
-      rect.top + radius,
-      maxOffset
+      origin.x,
+      origin.y,
+      metrics.maxOffset
     );
-
-    if (knobRef.current) {
-      knobRef.current.style.transform =
-        `translate(-50%, -50%) translate(${vector.offsetX}px, ${vector.offsetY}px)`;
-    }
 
     onChangeRef.current({ x: vector.x, y: vector.y });
   };
@@ -121,6 +159,7 @@ function Stick({ label, onChange, testId }) {
 
     event.preventDefault();
     pointerIdRef.current = event.pointerId;
+    originRef.current = { x: event.clientX, y: event.clientY };
 
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -128,7 +167,9 @@ function Stick({ label, onChange, testId }) {
       // Pointer capture is best-effort; pointerup still releases the stick.
     }
 
-    updateFromPointer(event);
+    // Show the origin under the thumb without producing input yet.
+    positionKnob(event.clientX, event.clientY, getStickMetrics());
+    onChangeRef.current({ x: 0, y: 0 });
   };
 
   const handlePointerMove = (event) => {

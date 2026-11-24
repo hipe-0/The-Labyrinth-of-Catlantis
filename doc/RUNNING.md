@@ -166,8 +166,9 @@ folder is from an older build; regenerate it before deploying.
   HTTP 200
 - Touch controls were verified in Chrome device emulation:
   - Portrait (iPhone 15, 393×852): twin stick bases sit in the bottom corners and
-    the Jump button sits above the right stick; dragging each stick updates the
-    analog input, and releasing recenters the knob
+    the Jump button sits above the right stick; pressing anywhere on a pad does
+    not move or rotate, sliding from the contact point does, and releasing
+    recenters the knob
   - Landscape (844×390): canvas fills the viewport, `scrollY` is 0, document scroll
     height is 390, body background is black, and there is no white band
 - Touch and mouse look write to refs / accumulate deltas and are applied in

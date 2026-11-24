@@ -200,9 +200,9 @@ GAME_CONFIG = {
   FLOOR_SIZE: 180,
   MOVE_FIXED_STEP: 1 / 144, // fixed movement simulation step (same speed on 60/144 Hz)
   INPUT: {
-    STICK_DEAD_ZONE: 0.12,      // radial dead zone for both touch sticks
-    LOOK_STICK_YAW_RATE: 2.8,   // radians/second at full right-stick deflection
-    LOOK_STICK_PITCH_RATE: 1.8,
+    STICK_DEAD_ZONE: 0.18,      // radial dead zone for both touch sticks
+    LOOK_STICK_YAW_RATE: 2.0,   // radians/second at full right-stick deflection
+    LOOK_STICK_PITCH_RATE: 1.2,
     MOUSE_SENSITIVITY: 0.0022,  // radians per pixel of pointer-locked movement
     PITCH_LIMIT: Math.PI / 3    // ±60° vertical look
   },
@@ -398,8 +398,12 @@ Standard twin-stick touch controls. Props: `onMove({x, y})`, `onLook({x, y})`,
 `onJump()`.
 
 - Fixed left **Movement** stick and right **Look** stick, each owning one pointer
-  so both thumbs work at once. Values are normalized to `[-1, 1]` with +Y
-  pointing up/forward; the controller applies the dead zone.
+  so both thumbs work at once. A press anywhere inside a pad records that point
+  as the gesture origin and sends zero input; only sliding away from the contact
+  point moves/looks. Releasing recentres the knob and forgets the origin, so the
+  next press can land anywhere on the pad.
+- Values are normalized to `[-1, 1]` with +Y pointing up/forward; the controller
+  applies the dead zone. The knob visually follows the thumb.
 - `getStickVector` clamps the knob inside its base. Releasing a pointer (or a
   capture-less release elsewhere on the page) recenters the knob and sends
   `{x: 0, y: 0}`.
@@ -520,9 +524,9 @@ contains the system font stack and font smoothing.
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
 spawn orientation, fractal ring generation, mouse/stick look, joystick dead zones,
-circle collision and wall sliding, backward/forward cat pickup, jump, the silent audio
-fallback, takeoff camera math, the cat-rocket curve, edge-maze connectivity, and
-wall-segment merging.
+touch gesture origins, circle collision and wall sliding, backward/forward cat pickup,
+jump, the silent audio fallback, takeoff camera math, the cat-rocket curve, edge-maze
+connectivity, and wall-segment merging.
 
 ---
 

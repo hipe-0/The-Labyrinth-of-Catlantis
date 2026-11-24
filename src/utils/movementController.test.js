@@ -262,10 +262,12 @@ describe('movementController analog movement', () => {
 
     const fullDistance = Math.hypot(fullPlayer.x - 7, fullPlayer.y - 7);
     const halfDistance = Math.hypot(halfPlayer.x - 7, halfPlayer.y - 7);
+    const expectedRatio =
+      (0.56 - INPUT.STICK_DEAD_ZONE) / (1 - INPUT.STICK_DEAD_ZONE);
 
     expect(halfDistance).toBeGreaterThan(0);
     expect(halfDistance).toBeLessThan(fullDistance);
-    expect(halfDistance).toBeCloseTo(fullDistance * 0.5, 2);
+    expect(halfDistance / fullDistance).toBeCloseTo(expectedRatio, 2);
   });
 });
 

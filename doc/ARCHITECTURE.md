@@ -222,6 +222,11 @@ The controller applies a radial dead zone (`INPUT.STICK_DEAD_ZONE`) and rescales
 the remainder, so a resting thumb produces no drift and a partial deflection
 produces a proportionally slower movement.
 
+Each press establishes a fresh gesture origin at the contact point. Pressing a
+pad emits zero input and does not move or rotate the view; only sliding the thumb
+away from where it landed produces input. Releasing clears the origin, so the
+next press can land anywhere on the pad.
+
 Mouse look uses pointer lock: clicking the canvas captures the pointer,
 `mousemove` reports relative pixels, and Esc releases it. `handleMouseMove`
 converts the delta with `INPUT.MOUSE_SENSITIVITY` and applies it on the next frame.
