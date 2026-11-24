@@ -21,6 +21,7 @@ export const GAME_CONFIG = {
   // to [-1, 1] with +Y meaning "up" / forward on both sticks.
   INPUT: {
     STICK_DEAD_ZONE: 0.18, // Radial dead zone so resting thumbs do not drift
+    GAMEPAD_DEAD_ZONE: 0.2, // Slightly larger: physical sticks drift more than glass
     LOOK_STICK_YAW_RATE: 2.0, // Radians/second at full right-stick deflection
     LOOK_STICK_PITCH_RATE: 1.2, // Radians/second vertical look rate
     MOUSE_SENSITIVITY: 0.0022, // Radians per pixel of pointer-locked movement

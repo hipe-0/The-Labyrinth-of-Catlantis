@@ -44,6 +44,11 @@ export const createMovementController = (
   const stickMove = { x: 0, y: 0 };
   const stickLook = { x: 0, y: 0 };
 
+  // Standard gamepad axes, also raw. Keeping them separate lets keyboard,
+  // touch, and a physical controller contribute at the same time.
+  const gamepadMove = { x: 0, y: 0 };
+  const gamepadLook = { x: 0, y: 0 };
+
   // Pointer-locked mouse movement is accumulated between frames.
   let pendingYaw = 0;
   let pendingPitch = 0;
@@ -137,6 +142,18 @@ export const createMovementController = (
     stickLook.y = clamp(toFinite(y), -1, 1);
   };
 
+  const setGamepadInput = (
+    moveX = 0,
+    moveY = 0,
+    lookX = 0,
+    lookY = 0
+  ) => {
+    gamepadMove.x = clamp(toFinite(moveX), -1, 1);
+    gamepadMove.y = clamp(toFinite(moveY), -1, 1);
+    gamepadLook.x = clamp(toFinite(lookX), -1, 1);
+    gamepadLook.y = clamp(toFinite(lookY), -1, 1);
+  };
+
   const resetInput = () => {
     keyState.forward = false;
     keyState.backward = false;
@@ -146,6 +163,10 @@ export const createMovementController = (
     stickMove.y = 0;
     stickLook.x = 0;
     stickLook.y = 0;
+    gamepadMove.x = 0;
+    gamepadMove.y = 0;
+    gamepadLook.x = 0;
+    gamepadLook.y = 0;
     pendingYaw = 0;
     pendingPitch = 0;
     playerRef.current.movementAccumulator = 0;
@@ -157,16 +178,27 @@ export const createMovementController = (
       stickLook.y,
       INPUT.STICK_DEAD_ZONE
     );
+    const padLook = applyRadialDeadZone(
+      gamepadLook.x,
+      gamepadLook.y,
+      INPUT.GAMEPAD_DEAD_ZONE
+    );
+    // Both sticks may be used at once; clamp the combined rate to full tilt.
+    const look = applyRadialDeadZone(
+      analogLook.x + padLook.x,
+      analogLook.y + padLook.y,
+      0
+    );
 
     player.rotation = wrapAngle(
       player.rotation +
         pendingYaw -
-        analogLook.x * INPUT.LOOK_STICK_YAW_RATE * frameDelta
+        look.x * INPUT.LOOK_STICK_YAW_RATE * frameDelta
     );
 
     const pitch = toFinite(player.pitch) + pendingPitch;
     player.pitch = clamp(
-      pitch + analogLook.y * INPUT.LOOK_STICK_PITCH_RATE * frameDelta,
+      pitch + look.y * INPUT.LOOK_STICK_PITCH_RATE * frameDelta,
       -INPUT.PITCH_LIMIT,
       INPUT.PITCH_LIMIT
     );
@@ -175,23 +207,31 @@ export const createMovementController = (
     pendingPitch = 0;
   };
 
-  // Combine keyboard and left-stick movement into a camera-relative vector.
-  // The result never exceeds unit length so diagonals are not faster.
+  // Combine keyboard, left touch stick, and left gamepad stick into a
+  // camera-relative vector. The result never exceeds unit length so diagonals
+  // are not faster.
   const resolveMoveInput = () => {
     const analogMove = applyRadialDeadZone(
       stickMove.x,
       stickMove.y,
       INPUT.STICK_DEAD_ZONE
     );
+    const padMove = applyRadialDeadZone(
+      gamepadMove.x,
+      gamepadMove.y,
+      INPUT.GAMEPAD_DEAD_ZONE
+    );
 
     let x =
       (keyState.right ? 1 : 0) -
       (keyState.left ? 1 : 0) +
-      analogMove.x;
+      analogMove.x +
+      padMove.x;
     let y =
       (keyState.forward ? 1 : 0) -
       (keyState.backward ? 1 : 0) +
-      analogMove.y;
+      analogMove.y +
+      padMove.y;
 
     const magnitude = Math.hypot(x, y);
 
@@ -315,6 +355,7 @@ export const createMovementController = (
     handleMouseMove,
     setMoveInput,
     setLookInput,
+    setGamepadInput,
     requestJump: tryJump,
     resetInput,
     updatePlayerMovement,

@@ -201,6 +201,7 @@ GAME_CONFIG = {
   MOVE_FIXED_STEP: 1 / 144, // fixed movement simulation step (same speed on 60/144 Hz)
   INPUT: {
     STICK_DEAD_ZONE: 0.18,      // radial dead zone for both touch sticks
+    GAMEPAD_DEAD_ZONE: 0.2,     // dead zone for physical controller axes
     LOOK_STICK_YAW_RATE: 2.0,   // radians/second at full right-stick deflection
     LOOK_STICK_PITCH_RATE: 1.2,
     MOUSE_SENSITIVITY: 0.0022,  // radians per pixel of pointer-locked movement
@@ -323,6 +324,22 @@ movement controller.
 
 Covered by `joystick.test.js`.
 
+### `src/utils/gamepad.js`
+
+Standard Gamepad API mapping and polling. Pure functions accept injected fake
+pads, so they are testable without a browser.
+
+- `readGamepadState(gamepad)` — maps axes 0/1 to move and 2/3 to look, inverts
+  the DOM Y axis (+Y = up/forward), clamps axes, and reports button 0
+  (`A` / Cross) as `jumpPressed`.
+- `findActiveGamepad(gamepads)` — picks the first connected standard pad, with a
+  fallback to any connected pad that has a left stick.
+- `createGamepadTracker(getGamepads)` — frame-loop poller. Converts a held
+  `A`/Cross button into a single jump request, resets on disconnect, and does
+  not fire an accidental jump when the pad first appears with the button held.
+
+Covered by `gamepad.test.js`.
+
 ### `src/utils/movementController.js`
 
 Factory that closes over the maze, player ref, setters, cats, and an optional
@@ -335,18 +352,20 @@ Exports `createMovementController`. Returned object:
 | `handleKeyDown(event)` | WASD / arrows set movement state; Space starts a jump |
 | `handleKeyUp(event)` | Clears the corresponding movement state |
 | `handleMouseMove(dx, dy)` | Accumulates pointer-locked look deltas, converted by mouse sensitivity |
-| `setMoveInput(x, y)` | Raw left-stick vector, normalized to `[-1, 1]` |
-| `setLookInput(x, y)` | Raw right-stick look vector, normalized to `[-1, 1]` |
+| `setMoveInput(x, y)` | Raw left touch-stick vector, normalized to `[-1, 1]` |
+| `setLookInput(x, y)` | Raw right touch-stick look vector, normalized to `[-1, 1]` |
+| `setGamepadInput(mx, my, lx, ly)` | Raw physical-controller move/look vectors; combined with touch and keyboard |
 | `requestJump()` | Starts a jump if the player is not already airborne |
 | `resetInput()` | Clears keys, sticks, pending look, and the movement accumulator |
 | `updatePlayerMovement(player, delta)` | Look, jump physics, fixed-step circle movement, wall sliding, cat pickup |
 | `keyState` | Forward/backward/left/right booleans (exposed for debugging) |
 
-Input combines keyboard and left-stick movement into a camera-relative vector,
-clamps it to unit length, and applies `INPUT.STICK_DEAD_ZONE` to the analog
-input. Mouse look is accumulated in `pendingYaw`/`pendingPitch`; right-stick
-look is applied at the configured radians-per-second rates. See
-`src/utils/joystick.js` for the pure dead-zone/vector math.
+Input combines keyboard, touch, and gamepad movement into a camera-relative
+vector, clamps it to unit length, and applies the per-device dead zones to the
+analog inputs. Mouse look is accumulated in `pendingYaw`/`pendingPitch`;
+touch/gamepad look is applied at the configured radians-per-second rates. See
+`src/utils/joystick.js` for the pure dead-zone/vector math and
+`src/utils/gamepad.js` for the standard Gamepad API mapping.
 
 Internal helpers:
 
@@ -524,9 +543,9 @@ contains the system font stack and font smoothing.
 
 Imports `@testing-library/jest-dom` for Jest. Tests cover the Enter/Space start keys,
 spawn orientation, fractal ring generation, mouse/stick look, joystick dead zones,
-touch gesture origins, circle collision and wall sliding, backward/forward cat pickup,
-jump, the silent audio fallback, takeoff camera math, the cat-rocket curve, edge-maze
-connectivity, and wall-segment merging.
+touch gesture origins, gamepad axis mapping/jump edges, circle collision and wall
+sliding, backward/forward cat pickup, jump, the silent audio fallback, takeoff camera
+math, the cat-rocket curve, edge-maze connectivity, and wall-segment merging.
 
 ---
 
@@ -564,6 +583,7 @@ index.js
 │       │   └── config/gameConfig.js
 │       ├── utils/movementController.js
 │       │   ├── utils/collision.js
+│       │   ├── utils/gamepad.js
 │       │   ├── utils/joystick.js
 │       │   └── config/gameConfig.js
 │       ├── utils/takeoff.js

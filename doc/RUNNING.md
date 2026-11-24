@@ -174,6 +174,8 @@ folder is from an older build; regenerate it before deploying.
 - Touch and mouse look write to refs / accumulate deltas and are applied in
   `useFrame`; moving a stick does not re-render the 3D scene
 - Mouse look uses pointer lock: click the canvas to capture, Esc to release
+- Physical controllers use the standard Gamepad API (left stick move, right stick
+  look, A/Cross jump); polling means hot-plug and reconnects work without a UI
 - Movement is camera-relative, includes backward and strafing, clamps diagonals to
   unit length, and runs at the same speed on 60/144 Hz displays
 - The directional moonlight follows the moon's world position, clamped to a minimum

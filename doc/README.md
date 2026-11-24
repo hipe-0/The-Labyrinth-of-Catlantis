@@ -20,7 +20,7 @@ run it, and which parts are currently unfinished or broken.
 | Entry point | `src/index.js` → `src/App.js` → `src/MazeScene.js` |
 | Maze size | 31 × 31 cells |
 | Cats per level | 6 |
-| Controls | PC: WASD/arrows + mouse look + Space; touch: twin sticks + Jump |
+| Controls | PC: WASD/arrows + mouse look + Space; touch: twin sticks + Jump; gamepad: twin sticks + A/Cross |
 
 > The remaining feature requests are tracked in [TODO.md](TODO.md). Low-priority
 > engine notes are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
@@ -97,6 +97,9 @@ Pages `homepage`, CRA serves the app under
 | Left touch stick | Move relative to the current view |
 | Right touch stick | Look around (yaw + pitch) |
 | Jump button | Jump (touch devices) |
+| Gamepad left stick | Move relative to the current view |
+| Gamepad right stick | Look around (yaw + pitch) |
+| Gamepad `A` / Cross | Jump |
 
 Goal: collect all 6 cats, then reach the exit beacon in the far corner. Each collected
 cat meows and rockets into the sky while the gradient sky palette shifts smoothly
@@ -150,10 +153,11 @@ The-Labyrinth-of-Catlantis/
 │   │   ├── audioEngine.js        # procedural start/step/wind/beacon/meow sounds
 │   │   ├── collision.js         # circle-vs-AABB collision + wall sliding
 │   │   ├── fractal.js           # fractal mountain-ring generator
+│   │   ├── gamepad.js          # standard Gamepad API polling and mapping
 │   │   ├── joystick.js         # radial dead-zone and stick-vector math
 │   │   ├── mazeGeneration.js    # edge-wall maze carving, rooms, cat placement
 │   │   ├── mazeWalls.js         # unique/merged wall segments for render + collision
-│   │   ├── movementController.js# keyboard, mouse, sticks, collision, jump
+│   │   ├── movementController.js# keyboard, mouse, touch/gamepad sticks, collision, jump
 │   │   ├── rocket.js            # collected-cat fly-up curve
 │   │   └── takeoff.js           # level-complete fly-up camera math
 │   │

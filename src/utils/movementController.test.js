@@ -241,6 +241,43 @@ describe('movementController analog movement', () => {
     expect(player.y).toBeCloseTo(7, 8);
   });
 
+  it('moves and looks with a physical gamepad', () => {
+    const player = createPlayer({ x: 7, y: 7, rotation: 0 });
+    const controller = createController({
+      maze: createOpenMaze(15),
+      player,
+    });
+
+    controller.setGamepadInput(0, 1, 0, 0);
+    runFrames(controller, player, 30);
+
+    expect(player.x).toBeCloseTo(7, 5);
+    expect(player.y).toBeLessThan(7);
+
+    const lookPlayer = createPlayer();
+    const lookController = createController({ player: lookPlayer });
+
+    lookController.setGamepadInput(0, 0, 1, 0);
+    runFrames(lookController, lookPlayer, 30);
+
+    expect(lookPlayer.rotation).toBeLessThan(0);
+  });
+
+  it('ignores gamepad stick drift inside the dead zone', () => {
+    const player = createPlayer({ x: 7, y: 7, rotation: 0 });
+    const controller = createController({
+      maze: createOpenMaze(15),
+      player,
+    });
+
+    controller.setGamepadInput(0.1, 0.1, 0.1, 0.1);
+    runFrames(controller, player, 60);
+
+    expect(player.x).toBeCloseTo(7, 8);
+    expect(player.y).toBeCloseTo(7, 8);
+    expect(player.rotation).toBeCloseTo(0, 8);
+  });
+
   it('moves at a partial speed for a partial stick deflection', () => {
     const fullPlayer = createPlayer({ x: 7, y: 7, rotation: 0 });
     const fullController = createController({

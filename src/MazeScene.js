@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 import { generateMaze, getStartRotation } from './utils/mazeGeneration';
 import { createMovementController } from './utils/movementController';
+import { createGamepadTracker } from './utils/gamepad';
 import { getMazeWallSegments } from './utils/mazeWalls';
 import { getTakeoffPose } from './utils/takeoff';
 import { GAME_CONFIG } from './config/gameConfig';
@@ -89,6 +90,9 @@ export function MazeScene({
       }
     );
   }, [generatedMaze, cats, audio]);
+
+  // Polling the Gamepad API each frame handles hot-plugging without listeners.
+  const gamepadTracker = useMemo(() => createGamepadTracker(), []);
 
   // The moonlight aims at the shadow focus, which follows the player. The
   // light position is shifted by the same offset in the frame loop, so the
@@ -374,6 +378,17 @@ export function MazeScene({
       lookInput?.x ?? 0,
       lookInput?.y ?? 0
     );
+
+    const gamepad = gamepadTracker.poll();
+    movementController.setGamepadInput(
+      gamepad.move.x,
+      gamepad.move.y,
+      gamepad.look.x,
+      gamepad.look.y
+    );
+    if (gamepad.jump) {
+      movementController.requestJump();
+    }
 
     const jumpRequest = jumpRequestRef?.current ?? 0;
     if (jumpRequest !== lastJumpRequestRef.current) {

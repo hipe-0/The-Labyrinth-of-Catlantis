@@ -13,6 +13,8 @@ around (`Esc` releases it), `Space` jumps.
 
 **Touch:** left stick moves, right stick looks, and the Jump button jumps.
 
+**Gamepad:** left stick moves, right stick looks, and `A` / Cross jumps. Standard-layout Xbox and PlayStation controllers work; connect before or during play.
+
 Run it : https://hipe-0.github.io/The-Labyrinth-of-Catlantis/
 
 ## Run locally

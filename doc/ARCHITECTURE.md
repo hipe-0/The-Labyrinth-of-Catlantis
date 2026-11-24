@@ -71,6 +71,7 @@ splash screen; pressing Start on the splash generates the next maze in place.
 | `departingCats` | `MazeScene` | array | Collected cats currently playing the rocket animation |
 | `skyIndex` | `MazeScene` | number | Palette index for `SkyGradient`; advances with cats |
 | `movementController` | `MazeScene` | memo | Closure over the current maze/cats with key handlers and the movement update |
+| `gamepadTracker` | `MazeScene` | memo | Polls the Gamepad API each frame and emits stick values plus one-shot jump requests |
 
 ### Why a ref for the player?
 
@@ -230,6 +231,14 @@ next press can land anywhere on the pad.
 Mouse look uses pointer lock: clicking the canvas captures the pointer,
 `mousemove` reports relative pixels, and Esc releases it. `handleMouseMove`
 converts the delta with `INPUT.MOUSE_SENSITIVITY` and applies it on the next frame.
+
+Physical controllers use the standard Gamepad API. `src/utils/gamepad.js` polls
+`navigator.getGamepads()` every frame, maps the left stick to movement, the right
+stick to look, and the primary face button (`A` / Cross) to a one-shot jump. No
+pairing UI or listeners are needed; reconnecting is detected by the next poll. A
+larger `INPUT.GAMEPAD_DEAD_ZONE` (0.2) absorbs stick drift. Keyboard, touch, and
+gamepad input can contribute at the same time; the combined movement vector is
+clamped to unit length.
 
 ### Fixed timestep
 
@@ -525,6 +534,8 @@ pointer lock + mousemove ──► movementController.handleMouseMove
 left touch stick ───► App.moveInputRef ───► MazeScene useFrame ───► setMoveInput
 right touch stick ──► App.lookInputRef ───► MazeScene useFrame ───► setLookInput
 touch Jump ─────────► App.jumpRequestRef ─► MazeScene useFrame ───► requestJump
+gamepad (polled) ───► gamepadTracker ─────► MazeScene useFrame ───► setGamepadInput
+gamepad A/Cross ────► gamepadTracker ─────► MazeScene useFrame ───► requestJump
 
 useFrame(delta)
    ├─ phase takeoff ──► getTakeoffPose() ──► animate camera

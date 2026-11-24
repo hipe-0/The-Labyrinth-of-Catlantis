@@ -46,3 +46,6 @@ requirements.
     twin-stick layout on touch (left moves, right looks), and a Jump button.
     Movement is camera-relative and diagonals are normalized. Implemented on
     `feature/dual-stick-fps-controls`.
+15. [x] Add standard physical gamepad support via the Gamepad API: left stick
+    moves, right stick looks, A/Cross jumps, with hot-plug polling and a larger
+    controller dead zone. Keyboard, touch, and gamepad can be used together.
