@@ -48,8 +48,8 @@ a 3-up sheet → explicit **“NN approved”** → game commit → playtest. Se
 ### 3. Commit to the game (after approval)
 
 - Mark the chosen option `approved` and the other two `not-selected` in
-  `src/lab/option-ledger.json`. Record `Approved option: NN — <label>` in
-  `doc/proposals/<slug>/notes.md`.
+  `src/lab/option-ledger.json`. Set `status: 'approved'` in the proposal file and
+  record `Approved option: NN — <label>` in `doc/proposals/<slug>/notes.md`.
 - Implement **only that option**. Do not smuggle in extra visual changes.
 - Keep the proposal and all PNGs in the repo as the review record; set
   `Status: implemented — playtesting` in the notes and the ledger.
@@ -61,4 +61,5 @@ a 3-up sheet → explicit **“NN approved”** → game commit → playtest. Se
 
 - Ask the user to run `npm start` and test the game.
 - Do not push until the user explicitly approves the push (existing rule above).
-- After user confirmation, set the ledger and notes to `verified — user-approved`.
+- After user confirmation, set the proposal `status`, the ledger, and the notes to
+  `verified — user-approved`.

@@ -183,9 +183,11 @@ When an option is approved, update:
 
 1. `src/lab/option-ledger.json` — the chosen option’s status, and the other two to
    `not-selected`.
-2. `doc/proposals/<slug>/notes.md` — `Status: approved — ready to implement`,
+2. The proposal file — `status: 'approved'`, so the lab header shows
+   `APPROVED — READY TO IMPLEMENT`.
+3. `doc/proposals/<slug>/notes.md` — `Status: approved — ready to implement`,
    `Approved option: 58 — Wide ribbon`.
-3. Optionally recapture the chosen option:
+4. Optionally recapture the chosen option:
    `npm run preview -- <slug> --option 58`.
 
 **Preview commits** are allowed and encouraged to keep the tree clean, but they may
@@ -222,8 +224,8 @@ and documentation. They must not contain changes to:
 7. Ask the user to run `npm start` and test the game. Do **not** push until the
    user explicitly approves the push.
 
-When the user confirms the game looks right, set the ledger and notes to
-`verified — user-approved`.
+When the user confirms the game looks right, set the proposal `status`, the ledger,
+and the notes to `verified — user-approved`.
 
 ---
 
